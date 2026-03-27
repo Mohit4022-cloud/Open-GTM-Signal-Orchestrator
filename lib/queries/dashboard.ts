@@ -350,11 +350,38 @@ async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
   }));
 }
 
+async function getUnmatchedDashboardSignals() {
+  const signals = await db.signalEvent.findMany({
+    where: {
+      status: SignalStatus.UNMATCHED,
+    },
+    take: 5,
+    orderBy: {
+      occurredAt: "desc",
+    },
+    select: {
+      id: true,
+      eventType: true,
+      sourceSystem: true,
+      receivedAt: true,
+      normalizedPayloadJson: true,
+    },
+  });
+
+  return signals.map((signal) => ({
+    id: signal.id,
+    eventType: formatEnumLabel(signal.eventType),
+    sourceSystem: signal.sourceSystem,
+    receivedAt: formatRelativeTime(signal.receivedAt),
+    recommendation: getRecommendedQueue(signal.normalizedPayloadJson) ?? "Ops review",
+  }));
+}
+
 export async function getDashboardData(): Promise<DashboardData> {
-  const [summary, hotAccounts, recentSignals, recentRoutingDecisions] = await Promise.all([
+  const [summary, hotAccounts, unmatchedSignals, recentRoutingDecisions] = await Promise.all([
     getDashboardSummary(),
     getHotAccounts(),
-    getRecentSignals(),
+    getUnmatchedDashboardSignals(),
     getRecentRoutingFeed(),
   ]);
 
@@ -375,15 +402,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       score: account.score,
       lastSignalAt: account.lastSignalAtLabel ?? "No recent signals",
     })),
-    unmatchedSignals: recentSignals
-      .filter((signal) => signal.isUnmatched)
-      .map((signal) => ({
-        id: signal.id,
-        eventType: signal.eventTypeLabel,
-        sourceSystem: signal.sourceSystem,
-        receivedAt: signal.receivedAtLabel,
-        recommendation: signal.recommendedQueue ?? "Ops review",
-      })),
+    unmatchedSignals,
     recentRoutingDecisions,
   };
 }
