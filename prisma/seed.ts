@@ -7,7 +7,8 @@ import {
   LifecycleStage,
   Prisma,
   PrismaClient,
-  RoutingReason,
+  RoutingDecisionType,
+  RoutingEntityType,
   Segment,
   SignalType,
   TaskPriority,
@@ -1684,17 +1685,28 @@ async function main() {
     const account = accountById.get(lead.accountId)!;
     const decisionType =
       account.segment === Segment.STRATEGIC
-        ? RoutingReason.STRATEGIC_ESCALATION
+        ? RoutingDecisionType.STRATEGIC_TIER_OVERRIDE
         : account.namedOwnerId
-          ? RoutingReason.NAMED_ACCOUNT
+          ? RoutingDecisionType.NAMED_ACCOUNT_OWNER
           : lead.temperature === Temperature.COLD
-            ? RoutingReason.ROUND_ROBIN
-            : RoutingReason.TERRITORY_SEGMENT;
+            ? RoutingDecisionType.ROUND_ROBIN_POOL
+            : RoutingDecisionType.TERRITORY_SEGMENT_RULE;
 
-      return {
-        id: `${lead.id}_route`,
-        leadId: lead.id,
-        accountId: lead.accountId,
+    const explanation =
+      decisionType === RoutingDecisionType.STRATEGIC_TIER_OVERRIDE
+        ? "Strategic account routed to paired executive coverage after strong buying signals."
+        : decisionType === RoutingDecisionType.NAMED_ACCOUNT_OWNER
+          ? "Existing named owner retained to keep account context and multithread continuity."
+          : decisionType === RoutingDecisionType.TERRITORY_SEGMENT_RULE
+            ? "Lead assigned by geography and segment coverage policy."
+            : "Lead distributed through the fallback rotation because the account has no named owner.";
+
+    return {
+      id: `${lead.id}_route`,
+      entityType: RoutingEntityType.LEAD,
+      entityId: lead.id,
+      leadId: lead.id,
+      accountId: lead.accountId,
       policyVersion: "routing-2026.03",
       decisionType,
       assignedOwnerId: lead.currentOwnerId,
@@ -1714,14 +1726,11 @@ async function main() {
             : lead.temperature === Temperature.WARM
               ? "signal-followup"
               : "nurture-review",
-        explanation:
-          decisionType === RoutingReason.STRATEGIC_ESCALATION
-            ? "Strategic account routed to paired executive coverage after strong buying signals."
-            : decisionType === RoutingReason.NAMED_ACCOUNT
-              ? "Existing named owner retained to keep account context and multithread continuity."
-              : decisionType === RoutingReason.TERRITORY_SEGMENT
-                ? "Lead assigned by geography and segment coverage policy."
-                : "Lead distributed through the fallback rotation because the account has no named owner.",
+      explanationJson: {
+        summary: explanation,
+        drivers: [account.segment, account.geography, lead.temperature],
+        cautions: [],
+      },
       createdAt: lead.routedAt ?? lead.createdAt,
     };
   });

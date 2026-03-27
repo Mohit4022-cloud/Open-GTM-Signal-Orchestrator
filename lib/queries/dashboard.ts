@@ -17,6 +17,15 @@ import { db } from "@/lib/db";
 import { formatCompactNumber, formatEnumLabel, formatRelativeTime } from "@/lib/formatters/display";
 import type { ModulePlaceholderConfig } from "@/lib/types";
 
+function getRoutingExplanationSummary(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return "Routing explanation unavailable.";
+  }
+
+  const summary = (value as { summary?: unknown }).summary;
+  return typeof summary === "string" ? summary : "Routing explanation unavailable.";
+}
+
 function getRelativeLabel(value: Date | null | undefined) {
   return value ? formatRelativeTime(value) : null;
 }
@@ -270,7 +279,7 @@ async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
       id: true,
       decisionType: true,
       assignedQueue: true,
-      explanation: true,
+      explanationJson: true,
       createdAt: true,
       account: {
         select: {
@@ -292,7 +301,7 @@ async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
     queue: decision.assignedQueue,
     decisionType: formatEnumLabel(decision.decisionType),
     createdAt: formatRelativeTime(decision.createdAt),
-    explanation: decision.explanation,
+    explanation: getRoutingExplanationSummary(decision.explanationJson),
   }));
 }
 
