@@ -8,67 +8,52 @@ import type {
   RecentSignalContract,
   RoutingFeedItem,
 } from "@/lib/contracts/data-access";
+import {
+  getRecentSignals as getRecentSignalFeed,
+  getUnmatchedSignals,
+} from "@/lib/data/signals";
 import { db } from "@/lib/db";
 import { formatCompactNumber, formatEnumLabel, formatRelativeTime } from "@/lib/formatters/display";
 import type { ModulePlaceholderConfig } from "@/lib/types";
-
-type JsonRecord = Record<string, unknown>;
 
 function getRelativeLabel(value: Date | null | undefined) {
   return value ? formatRelativeTime(value) : null;
 }
 
-function getRecommendedQueue(payload: unknown) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return undefined;
+function getRecommendedQueue(reasonCodes: string[]) {
+  if (reasonCodes.includes("conflicting_match_candidates")) {
+    return "Conflict review";
   }
 
-  const value = (payload as JsonRecord).recommendedQueue;
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  if (reasonCodes.includes("no_domain_provided") || reasonCodes.includes("no_email_provided")) {
+    return "Identity triage";
+  }
+
+  return "Ops review";
 }
 
-function mapRecentSignal(signal: {
-  id: string;
-  eventType: string;
-  sourceSystem: string;
-  status: string;
-  occurredAt: Date;
-  receivedAt: Date;
-  normalizedPayloadJson: unknown;
-  accountId: string | null;
-  account: { name: string } | null;
-  contactId: string | null;
-  contact: { firstName: string; lastName: string } | null;
-  leadId: string | null;
-  lead: { source: string; temperature: string } | null;
-}): RecentSignalContract {
-  const recommendedQueue = getRecommendedQueue(signal.normalizedPayloadJson);
-  const contactName = signal.contact
-    ? `${signal.contact.firstName} ${signal.contact.lastName}`
-    : null;
-  const leadDisplay = signal.lead
-    ? `${signal.lead.source} · ${formatEnumLabel(signal.lead.temperature)}`
-    : null;
-
+function mapRecentSignal(signal: Awaited<ReturnType<typeof getRecentSignalFeed>>[number]): RecentSignalContract {
   return {
-    id: signal.id,
+    id: signal.signalId,
     eventType: signal.eventType,
     eventTypeLabel: formatEnumLabel(signal.eventType),
-    sourceSystem: signal.sourceSystem,
+    sourceSystem: formatEnumLabel(signal.sourceSystem),
     status: signal.status,
     statusLabel: formatEnumLabel(signal.status),
-    occurredAtIso: signal.occurredAt.toISOString(),
-    occurredAtLabel: formatRelativeTime(signal.occurredAt),
-    receivedAtIso: signal.receivedAt.toISOString(),
-    receivedAtLabel: formatRelativeTime(signal.receivedAt),
-    accountId: signal.accountId,
-    accountName: signal.account?.name ?? null,
-    contactId: signal.contactId,
-    contactName,
-    leadId: signal.leadId,
-    leadDisplay,
+    occurredAtIso: signal.occurredAtIso,
+    occurredAtLabel: formatRelativeTime(signal.occurredAtIso),
+    receivedAtIso: signal.receivedAtIso,
+    receivedAtLabel: formatRelativeTime(signal.receivedAtIso),
+    accountId: signal.matchedEntities.account?.id ?? null,
+    accountName: signal.matchedEntities.account?.name ?? null,
+    contactId: signal.matchedEntities.contact?.id ?? null,
+    contactName: signal.matchedEntities.contact?.name ?? null,
+    leadId: signal.matchedEntities.lead?.id ?? null,
+    leadDisplay: signal.matchedEntities.lead?.name ?? null,
     isUnmatched: signal.status === SignalStatus.UNMATCHED,
-    ...(recommendedQueue ? { recommendedQueue } : {}),
+    ...(signal.status === SignalStatus.UNMATCHED
+      ? { recommendedQueue: getRecommendedQueue(signal.reasonCodes) }
+      : {}),
   };
 }
 
@@ -122,7 +107,7 @@ export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
     return {
       date: format(date, "MMM d"),
       signals: dailySignals.length,
-      matched: dailySignals.filter((signal) => signal.status !== SignalStatus.UNMATCHED).length,
+      matched: dailySignals.filter((signal) => signal.status === SignalStatus.MATCHED).length,
     };
   });
 
@@ -275,42 +260,7 @@ export async function getHotAccounts(): Promise<HotAccountContract[]> {
 }
 
 export async function getRecentSignals(): Promise<RecentSignalContract[]> {
-  const signals = await db.signalEvent.findMany({
-    take: 8,
-    orderBy: {
-      occurredAt: "desc",
-    },
-    select: {
-      id: true,
-      eventType: true,
-      sourceSystem: true,
-      status: true,
-      occurredAt: true,
-      receivedAt: true,
-      normalizedPayloadJson: true,
-      accountId: true,
-      account: {
-        select: {
-          name: true,
-        },
-      },
-      contactId: true,
-      contact: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
-      },
-      leadId: true,
-      lead: {
-        select: {
-          source: true,
-          temperature: true,
-        },
-      },
-    },
-  });
-
+  const signals = await getRecentSignalFeed(8);
   return signals.map(mapRecentSignal);
 }
 
@@ -351,29 +301,14 @@ async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
 }
 
 async function getUnmatchedDashboardSignals() {
-  const signals = await db.signalEvent.findMany({
-    where: {
-      status: SignalStatus.UNMATCHED,
-    },
-    take: 5,
-    orderBy: {
-      occurredAt: "desc",
-    },
-    select: {
-      id: true,
-      eventType: true,
-      sourceSystem: true,
-      receivedAt: true,
-      normalizedPayloadJson: true,
-    },
-  });
+  const signals = await getUnmatchedSignals({ limit: 5 });
 
   return signals.map((signal) => ({
-    id: signal.id,
+    id: signal.signalId,
     eventType: formatEnumLabel(signal.eventType),
-    sourceSystem: signal.sourceSystem,
-    receivedAt: formatRelativeTime(signal.receivedAt),
-    recommendation: getRecommendedQueue(signal.normalizedPayloadJson) ?? "Ops review",
+    sourceSystem: formatEnumLabel(signal.sourceSystem),
+    receivedAt: formatRelativeTime(signal.receivedAtIso),
+    recommendation: getRecommendedQueue(signal.reasonCodes),
   }));
 }
 

@@ -15,6 +15,7 @@ import type {
   AccountsListData,
   SelectOption,
 } from "@/lib/contracts/data-access";
+import { getAccountTimeline } from "@/lib/data/signals";
 import { db } from "@/lib/db";
 import {
   formatCompactNumber,
@@ -230,163 +231,136 @@ export async function getAccounts(
 
 export async function getAccountById(id: string): Promise<AccountDetailContract | null> {
   const now = new Date();
-  const account = await db.account.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      domain: true,
-      segment: true,
-      geography: true,
-      lifecycleStage: true,
-      status: true,
-      overallScore: true,
-      fitScore: true,
-      industry: true,
-      accountTier: true,
-      employeeCount: true,
-      annualRevenueBand: true,
-      namedOwner: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-          email: true,
-          title: true,
-          geography: true,
-          team: true,
-          avatarColor: true,
-        },
-      },
-      contacts: {
-        orderBy: {
-          createdAt: "asc",
-        },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          title: true,
-          department: true,
-          seniority: true,
-          personaType: true,
-          email: true,
-          phone: true,
-        },
-      },
-      leads: {
-        orderBy: [{ score: "desc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          source: true,
-          inboundType: true,
-          status: true,
-          temperature: true,
-          score: true,
-          slaDeadlineAt: true,
-          firstResponseAt: true,
-          routedAt: true,
-          contactId: true,
-          contact: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
-          },
-          currentOwnerId: true,
-          currentOwner: {
-            select: {
-              name: true,
-            },
+  const [account, timeline] = await Promise.all([
+    db.account.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        segment: true,
+        geography: true,
+        lifecycleStage: true,
+        status: true,
+        overallScore: true,
+        fitScore: true,
+        industry: true,
+        accountTier: true,
+        employeeCount: true,
+        annualRevenueBand: true,
+        namedOwner: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            email: true,
+            title: true,
+            geography: true,
+            team: true,
+            avatarColor: true,
           },
         },
-      },
-      signals: {
-        take: 8,
-        orderBy: {
-          occurredAt: "desc",
-        },
-        select: {
-          id: true,
-          eventType: true,
-          sourceSystem: true,
-          status: true,
-          occurredAt: true,
-          receivedAt: true,
-          normalizedPayloadJson: true,
-          accountId: true,
-          contactId: true,
-          contact: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
+        contacts: {
+          orderBy: {
+            createdAt: "asc",
           },
-          leadId: true,
-          lead: {
-            select: {
-              source: true,
-              temperature: true,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            title: true,
+            department: true,
+            seniority: true,
+            personaType: true,
+            email: true,
+            phone: true,
+          },
+        },
+        leads: {
+          orderBy: [{ score: "desc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            source: true,
+            inboundType: true,
+            status: true,
+            temperature: true,
+            score: true,
+            slaDeadlineAt: true,
+            firstResponseAt: true,
+            routedAt: true,
+            contactId: true,
+            contact: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            currentOwnerId: true,
+            currentOwner: {
+              select: {
+                name: true,
+              },
             },
           },
         },
-      },
-      tasks: {
-        where: {
-          status: {
-            not: TaskStatus.COMPLETED,
+        tasks: {
+          where: {
+            status: {
+              not: TaskStatus.COMPLETED,
+            },
           },
-        },
-        take: 6,
-        orderBy: {
-          dueAt: "asc",
-        },
-        select: {
-          id: true,
-          taskType: true,
-          priority: true,
-          status: true,
-          title: true,
-          description: true,
-          dueAt: true,
-          ownerId: true,
-          owner: {
-            select: {
-              name: true,
+          take: 6,
+          orderBy: {
+            dueAt: "asc",
+          },
+          select: {
+            id: true,
+            taskType: true,
+            priority: true,
+            status: true,
+            title: true,
+            description: true,
+            dueAt: true,
+            ownerId: true,
+            owner: {
+              select: {
+                name: true,
+              },
             },
           },
         },
+        scoreHistory: {
+          take: 6,
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            scoreComponent: true,
+            delta: true,
+            reasonCode: true,
+          },
+        },
+        auditLogs: {
+          take: 8,
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            eventType: true,
+            explanation: true,
+            createdAt: true,
+            actorName: true,
+            actorType: true,
+            entityType: true,
+            entityId: true,
+          },
+        },
       },
-      scoreHistory: {
-        take: 6,
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          id: true,
-          scoreComponent: true,
-          delta: true,
-          reasonCode: true,
-        },
-      },
-      auditLogs: {
-        take: 8,
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          id: true,
-          eventType: true,
-          explanation: true,
-          createdAt: true,
-          actorName: true,
-          actorType: true,
-          entityType: true,
-          entityId: true,
-        },
-      },
-    },
-  });
+    }),
+    getAccountTimeline(id, { limit: 8 }),
+  ]);
 
   if (!account) {
     return null;
@@ -459,33 +433,26 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
       routedAtIso: lead.routedAt?.toISOString() ?? null,
       routedAtLabel: getRelativeLabel(lead.routedAt),
     })),
-    recentSignals: account.signals.map((signal) => {
-      const contactName = signal.contact
-        ? `${signal.contact.firstName} ${signal.contact.lastName}`
-        : null;
-      const leadDisplay = signal.lead
-        ? `${signal.lead.source} · ${formatEnumLabel(signal.lead.temperature)}`
-        : null;
-
+    recentSignals: timeline.map((signal) => {
       return {
-        id: signal.id,
+        id: signal.signalId,
         eventType: signal.eventType,
         eventTypeLabel: formatEnumLabel(signal.eventType),
-        sourceSystem: signal.sourceSystem,
-        status: signal.status,
-        statusLabel: formatEnumLabel(signal.status),
-        occurredAtIso: signal.occurredAt.toISOString(),
-        occurredAtLabel: formatRelativeTime(signal.occurredAt),
-        receivedAtIso: signal.receivedAt.toISOString(),
-        receivedAtLabel: formatRelativeTime(signal.receivedAt),
-        accountId: signal.accountId,
+        sourceSystem: formatEnumLabel(signal.sourceSystem),
+        status: signal.matchStatus,
+        statusLabel: formatEnumLabel(signal.matchStatus),
+        occurredAtIso: signal.occurredAtIso,
+        occurredAtLabel: formatRelativeTime(signal.occurredAtIso),
+        receivedAtIso: signal.occurredAtIso,
+        receivedAtLabel: formatRelativeTime(signal.occurredAtIso),
+        accountId: account.id,
         accountName: account.name,
-        contactId: signal.contactId,
-        contactName,
-        leadId: signal.leadId,
-        leadDisplay,
-        isUnmatched: false,
-        description: `${signal.sourceSystem} ${formatEnumLabel(signal.eventType).toLowerCase()} captured on the canonical account timeline.`,
+        contactId: signal.associatedContact?.id ?? null,
+        contactName: signal.associatedContact?.fullName ?? null,
+        leadId: null,
+        leadDisplay: null,
+        isUnmatched: signal.matchStatus === "UNMATCHED",
+        description: signal.displaySubtitle,
       };
     }),
     openTasks: account.tasks.map((task) => ({
@@ -526,7 +493,7 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
     summary: buildAccountSummary({
       name: account.name,
       overallScore: account.overallScore,
-      signals: account.signals,
+      signals: timeline,
       tasks: account.tasks,
     }),
   };

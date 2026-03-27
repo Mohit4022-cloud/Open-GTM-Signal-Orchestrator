@@ -60,3 +60,19 @@ export type {
   TimelineEvent,
   UnmatchedSignalItem,
 } from "@/lib/contracts/data-access";
+export type {
+  AccountTimelineItemContract,
+  CanonicalSignalEventContract,
+  GetAccountTimelineOptions,
+  GetUnmatchedSignalsFilters,
+  IdentityResolutionCode,
+  IngestSignalInput,
+  IngestSignalResult,
+  RecentSignalFeedItemContract,
+  SignalAuditEntryContract,
+  SignalDetailContract,
+  SignalNormalizedSummaryContract,
+  UnmatchedSignalQueueItemContract,
+  UploadSignalsCsvInput,
+  UploadSignalsCsvResult,
+} from "@/lib/contracts/signals";
