@@ -113,12 +113,18 @@ enum ScoreComponent {
   MANUAL_PRIORITY
 }
 
-enum RoutingReason {
-  NAMED_ACCOUNT
-  TERRITORY_SEGMENT
-  ROUND_ROBIN
-  STRATEGIC_ESCALATION
-  OPS_REVIEW
+enum RoutingEntityType {
+  LEAD
+  ACCOUNT
+}
+
+enum RoutingDecisionType {
+  NAMED_ACCOUNT_OWNER
+  EXISTING_ACCOUNT_OWNER
+  STRATEGIC_TIER_OVERRIDE
+  TERRITORY_SEGMENT_RULE
+  ROUND_ROBIN_POOL
+  OPS_REVIEW_QUEUE
 }
 
 enum TaskStatus {
@@ -155,6 +161,8 @@ enum AuditEventType {
   SCORE_MANUAL_PRIORITY_OVERRIDDEN
   SIGNAL_ATTACHED_AND_RESCORED
   ROUTE_ASSIGNED
+  ROUTING_FALLBACK_CAPACITY
+  ROUTING_SENT_TO_OPS_REVIEW
   TASK_CREATED
   SLA_BREACHED
   USER_OVERRIDE
@@ -170,20 +178,25 @@ enum ScoreTriggerType {
 }
 
 model User {
-  id                 String            @id
-  name               String
-  email              String            @unique
-  role               String
-  team               String
-  geography          Geography
-  title              String?
-  avatarColor        String?
-  ownedAccounts      Account[]         @relation("NamedOwner")
-  assignedLeads      Lead[]            @relation("LeadOwner")
-  ownedTasks         Task[]            @relation("TaskOwner")
-  routingAssignments RoutingDecision[] @relation("RoutingOwner")
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                          String            @id
+  name                        String
+  email                       String            @unique
+  role                        String
+  team                        String
+  geography                   Geography
+  title                       String?
+  avatarColor                 String?
+  maxOpenHotLeads             Int               @default(3)
+  maxDailyInboundAssignments  Int               @default(6)
+  maxOpenTasks                Int               @default(12)
+  ownedAccounts               Account[]         @relation("NamedOwner")
+  accountPortfolio            Account[]         @relation("AccountOwner")
+  assignedLeads               Lead[]            @relation("LeadOwner")
+  ownedTasks                  Task[]            @relation("TaskOwner")
+  routingAssignments          RoutingDecision[] @relation("RoutingOwner")
+  routingSecondaryAssignments RoutingDecision[] @relation("RoutingSecondaryOwner")
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime          @updatedAt
 }
 
 model Account {
@@ -196,6 +209,7 @@ model Account {
   employeeCount     Int
   annualRevenueBand String
   namedOwnerId      String?
+  ownerId           String?
   accountTier       AccountTier
   lifecycleStage    LifecycleStage
   fitScore          Int
@@ -218,6 +232,7 @@ model Account {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   namedOwner        User?             @relation("NamedOwner", fields: [namedOwnerId], references: [id])
+  owner             User?             @relation("AccountOwner", fields: [ownerId], references: [id])
   contacts          Contact[]
   leads             Lead[]
   signals           SignalEvent[]
@@ -230,6 +245,7 @@ model Account {
   @@index([overallScore])
   @@index([temperature, overallScore])
   @@index([namedOwnerId])
+  @@index([ownerId])
 }
 
 model Contact {
@@ -322,6 +338,7 @@ model SignalEvent {
   contact               Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   lead                  Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
   triggeredScoreHistory ScoreHistory[] @relation("ScoreHistoryTriggerSignal")
+  triggeredRoutingDecisions RoutingDecision[] @relation("RoutingTriggerSignal")
 
   @@index([accountId])
   @@index([leadId])
@@ -364,23 +381,36 @@ model ScoreHistory {
 }
 
 model RoutingDecision {
-  id              String        @id
-  leadId          String?
-  accountId       String?
-  policyVersion   String
-  decisionType    RoutingReason
-  assignedOwnerId String?
-  assignedTeam    String
-  assignedQueue   String
-  explanation     String
-  createdAt       DateTime      @default(now())
-  lead            Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  account         Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  assignedOwner   User?         @relation("RoutingOwner", fields: [assignedOwnerId], references: [id], onDelete: SetNull)
+  id                  String              @id
+  entityType          RoutingEntityType
+  entityId            String
+  leadId              String?
+  accountId           String?
+  policyVersion       String
+  decisionType        RoutingDecisionType
+  assignedOwnerId     String?
+  secondaryOwnerId    String?
+  assignedTeam        String?
+  assignedQueue       String
+  reasonCodesJson     Json                @default("[]")
+  explanationJson     Json                @default("{}")
+  slaTargetMinutes    Int?
+  slaDueAt            DateTime?
+  escalationPolicyKey String?
+  triggerSignalId     String?
+  createdAt           DateTime            @default(now())
+  lead                Lead?               @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  account             Account?            @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  assignedOwner       User?               @relation("RoutingOwner", fields: [assignedOwnerId], references: [id], onDelete: SetNull)
+  secondaryOwner      User?               @relation("RoutingSecondaryOwner", fields: [secondaryOwnerId], references: [id], onDelete: SetNull)
+  triggerSignal       SignalEvent?        @relation("RoutingTriggerSignal", fields: [triggerSignalId], references: [id], onDelete: SetNull)
 
-  @@index([accountId])
-  @@index([leadId])
-  @@index([assignedOwnerId])
+  @@index([entityType, entityId, createdAt])
+  @@index([accountId, createdAt])
+  @@index([leadId, createdAt])
+  @@index([assignedOwnerId, createdAt])
+  @@index([secondaryOwnerId, createdAt])
+  @@index([triggerSignalId, createdAt])
 }
 
 model Task {
