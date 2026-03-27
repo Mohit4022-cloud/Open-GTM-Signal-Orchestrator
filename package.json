@@ -35,7 +35,7 @@
     "db:verify-signal-pipeline": "tsx prisma/verify-signal-pipeline.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
-    "test": "node --import tsx --test --test-concurrency=1 \"tests/**/*.test.ts\""
+    "test": "node --import tsx --test --test-concurrency=1 tests/*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
