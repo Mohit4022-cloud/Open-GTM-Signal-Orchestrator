@@ -1,11 +1,33 @@
-import { Activity, AlertTriangle, ArrowRight, Flame, Router, ShieldCheck } from "lucide-react";
+import type { ComponentType } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Flame,
+  Router,
+  ShieldAlert,
+  ShieldCheck,
+  Timer,
+} from "lucide-react";
 
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { HotAccountsTable } from "@/components/dashboard/HotAccountsTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/shared/Badge";
 import { Card } from "@/components/shared/Card";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { getDashboardData } from "@/lib/queries/dashboard";
+
+/** Maps known KPI labels to a Lucide icon for quick visual scanning. */
+const KPI_ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  "Signals received today": Activity,
+  "Routed today": Router,
+  "Unmatched signals": AlertTriangle,
+  "Hot accounts": Flame,
+  "SLA breaches": ShieldAlert,
+  "Avg. speed-to-lead": Timer,
+};
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
@@ -24,12 +46,18 @@ export default async function DashboardPage() {
         }
       />
 
+      {/* KPI Row */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.kpis.map((kpi) => (
-          <MetricCard key={kpi.label} {...kpi} />
+          <MetricCard
+            key={kpi.label}
+            {...kpi}
+            icon={KPI_ICON_MAP[kpi.label]}
+          />
         ))}
       </div>
 
+      {/* Charts Row */}
       <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
         <Card className="p-6">
           <div className="flex items-center justify-between gap-3">
@@ -42,7 +70,7 @@ export default async function DashboardPage() {
               </h2>
             </div>
             <Badge tone="accent">
-              <Activity className="mr-1 size-3.5" />
+              <Activity className="mr-1 size-3.5" aria-hidden />
               High-intent stream
             </Badge>
           </div>
@@ -62,7 +90,7 @@ export default async function DashboardPage() {
               </h2>
             </div>
             <Badge tone="neutral">
-              <ShieldCheck className="mr-1 size-3.5" />
+              <ShieldCheck className="mr-1 size-3.5" aria-hidden />
               Follow-up posture
             </Badge>
           </div>
@@ -72,9 +100,11 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Hot Accounts + Feed Row */}
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        {/* Hot Accounts */}
         <Card className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Hot accounts
@@ -84,44 +114,18 @@ export default async function DashboardPage() {
               </h2>
             </div>
             <Badge tone="positive">
-              <Flame className="mr-1 size-3.5" />
+              <Flame className="mr-1 size-3.5" aria-hidden />
               Prioritize now
             </Badge>
           </div>
-          <div className="mt-6 overflow-hidden rounded-3xl border border-border">
-            <table className="min-w-full divide-y divide-border text-left">
-              <thead className="bg-panel-muted/80">
-                <tr>
-                  {["Account", "Owner", "Segment", "Score", "Last signal"].map((label) => (
-                    <th
-                      key={label}
-                      className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {data.hotAccounts.map((account) => (
-                  <tr key={account.id} className="bg-white/60 hover:bg-panel-muted/70">
-                    <td className="px-5 py-4 font-semibold text-foreground">{account.name}</td>
-                    <td className="px-5 py-4 text-sm text-foreground">{account.owner}</td>
-                    <td className="px-5 py-4 text-sm text-muted-foreground">{account.segment}</td>
-                    <td className="px-5 py-4 font-mono text-lg font-semibold text-foreground">
-                      {account.score}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-muted-foreground">{account.lastSignalAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <HotAccountsTable accounts={data.hotAccounts} />
         </Card>
 
+        {/* Right column */}
         <div className="grid gap-6">
+          {/* Unmatched Signals */}
           <Card className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Unmatched signals
@@ -131,30 +135,38 @@ export default async function DashboardPage() {
                 </h2>
               </div>
               <Badge tone="warning">
-                <AlertTriangle className="mr-1 size-3.5" />
+                <AlertTriangle className="mr-1 size-3.5" aria-hidden />
                 Needs review
               </Badge>
             </div>
-            <div className="mt-5 space-y-3">
-              {data.unmatchedSignals.map((signal) => (
-                <div
-                  key={signal.id}
-                  className="rounded-2xl border border-border bg-panel-muted/70 p-4"
-                >
-                  <p className="font-semibold text-foreground">{signal.eventType}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {signal.sourceSystem} · {signal.receivedAt}
-                  </p>
-                  <p className="mt-3 text-sm text-foreground">
-                    Recommended queue: <span className="font-medium">{signal.recommendation}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
+            {data.unmatchedSignals.length === 0 ? (
+              <div className="flex h-20 items-center justify-center rounded-2xl border border-border bg-panel-muted/40 text-sm text-muted-foreground">
+                Queue is clear
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.unmatchedSignals.map((signal) => (
+                  <div
+                    key={signal.id}
+                    className="rounded-2xl border border-border bg-panel-muted/70 p-4"
+                  >
+                    <p className="font-semibold text-foreground">{signal.eventType}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {signal.sourceSystem} · {signal.receivedAt}
+                    </p>
+                    <p className="mt-3 text-sm text-foreground">
+                      Recommended queue:{" "}
+                      <span className="font-medium">{signal.recommendation}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
+          {/* Activity Feed */}
           <Card className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Routing decisions
@@ -164,30 +176,11 @@ export default async function DashboardPage() {
                 </h2>
               </div>
               <Badge tone="neutral">
-                <Router className="mr-1 size-3.5" />
+                <Router className="mr-1 size-3.5" aria-hidden />
                 Policy trace
               </Badge>
             </div>
-            <div className="mt-5 space-y-3">
-              {data.recentRoutingDecisions.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-border bg-white/70 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-foreground">{item.accountName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {item.decisionType} · {item.ownerName}
-                      </p>
-                    </div>
-                    <Badge tone="accent">{item.queue}</Badge>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-foreground">{item.explanation}</p>
-                  <p className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    {item.createdAt}
-                    <ArrowRight className="size-3.5" />
-                  </p>
-                </div>
-              ))}
-            </div>
+            <ActivityFeed items={data.recentRoutingDecisions} />
           </Card>
         </div>
       </div>
