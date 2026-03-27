@@ -1,63 +1,111 @@
 import { differenceInMinutes, format, startOfDay, subDays } from "date-fns";
 import { SignalStatus, TaskStatus } from "@prisma/client";
 
+import type {
+  DashboardData,
+  DashboardSummaryContract,
+  HotAccountContract,
+  RecentSignalContract,
+  RoutingFeedItem,
+} from "@/lib/contracts/data-access";
+import { db } from "@/lib/db";
 import { formatCompactNumber, formatEnumLabel, formatRelativeTime } from "@/lib/formatters/display";
-import { prisma } from "@/lib/prisma";
-import type { DashboardData, ModulePlaceholderConfig } from "@/lib/types";
+import type { ModulePlaceholderConfig } from "@/lib/types";
 
-type JsonRecord = Record<string, string | number | boolean | null | undefined>;
+type JsonRecord = Record<string, unknown>;
 
-export async function getDashboardData(): Promise<DashboardData> {
-  const [signals, accounts, leads, routingDecisions, tasks] = await Promise.all([
-    prisma.signalEvent.findMany({
+function getRelativeLabel(value: Date | null | undefined) {
+  return value ? formatRelativeTime(value) : null;
+}
+
+function getRecommendedQueue(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return undefined;
+  }
+
+  const value = (payload as JsonRecord).recommendedQueue;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function mapRecentSignal(signal: {
+  id: string;
+  eventType: string;
+  sourceSystem: string;
+  status: string;
+  occurredAt: Date;
+  receivedAt: Date;
+  normalizedPayloadJson: unknown;
+  accountId: string | null;
+  account: { name: string } | null;
+  contactId: string | null;
+  contact: { firstName: string; lastName: string } | null;
+  leadId: string | null;
+  lead: { source: string; temperature: string } | null;
+}): RecentSignalContract {
+  const recommendedQueue = getRecommendedQueue(signal.normalizedPayloadJson);
+  const contactName = signal.contact
+    ? `${signal.contact.firstName} ${signal.contact.lastName}`
+    : null;
+  const leadDisplay = signal.lead
+    ? `${signal.lead.source} · ${formatEnumLabel(signal.lead.temperature)}`
+    : null;
+
+  return {
+    id: signal.id,
+    eventType: signal.eventType,
+    eventTypeLabel: formatEnumLabel(signal.eventType),
+    sourceSystem: signal.sourceSystem,
+    status: signal.status,
+    statusLabel: formatEnumLabel(signal.status),
+    occurredAtIso: signal.occurredAt.toISOString(),
+    occurredAtLabel: formatRelativeTime(signal.occurredAt),
+    receivedAtIso: signal.receivedAt.toISOString(),
+    receivedAtLabel: formatRelativeTime(signal.receivedAt),
+    accountId: signal.accountId,
+    accountName: signal.account?.name ?? null,
+    contactId: signal.contactId,
+    contactName,
+    leadId: signal.leadId,
+    leadDisplay,
+    isUnmatched: signal.status === SignalStatus.UNMATCHED,
+    ...(recommendedQueue ? { recommendedQueue } : {}),
+  };
+}
+
+export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
+  const [signals, leads, routingDecisions, tasks, accountCount, hotAccountCount] = await Promise.all([
+    db.signalEvent.findMany({
       select: {
-        id: true,
-        eventType: true,
-        sourceSystem: true,
-        accountId: true,
         occurredAt: true,
         receivedAt: true,
         status: true,
-        normalizedPayloadJson: true,
       },
       orderBy: { occurredAt: "desc" },
     }),
-    prisma.account.findMany({
+    db.lead.findMany({
       select: {
-        id: true,
-        name: true,
-        segment: true,
-        overallScore: true,
-        namedOwner: { select: { name: true } },
-      },
-      orderBy: { overallScore: "desc" },
-    }),
-    prisma.lead.findMany({
-      select: {
-        id: true,
         createdAt: true,
         firstResponseAt: true,
         slaDeadlineAt: true,
       },
     }),
-    prisma.routingDecision.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
+    db.routingDecision.findMany({
       select: {
-        id: true,
-        decisionType: true,
-        assignedQueue: true,
-        explanation: true,
         createdAt: true,
-        account: { select: { name: true } },
-        assignedOwner: { select: { name: true } },
       },
     }),
-    prisma.task.findMany({
+    db.task.findMany({
       select: {
-        id: true,
-        status: true,
         dueAt: true,
+        status: true,
+      },
+    }),
+    db.account.count(),
+    db.account.count({
+      where: {
+        overallScore: {
+          gte: 80,
+        },
       },
     }),
   ]);
@@ -87,41 +135,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
       : 0;
 
-  const unmatchedSignals = signals
-    .filter((signal) => signal.status === SignalStatus.UNMATCHED)
-    .slice(0, 5)
-    .map((signal) => {
-      const normalized = signal.normalizedPayloadJson as JsonRecord;
-      return {
-        id: signal.id,
-        eventType: formatEnumLabel(signal.eventType),
-        sourceSystem: signal.sourceSystem,
-        receivedAt: formatRelativeTime(signal.receivedAt),
-        recommendation: String(normalized.recommendedQueue ?? "Ops review"),
-      };
-    });
-
-  const lastSignalByAccount = signals.reduce<Record<string, Date>>((acc, signal) => {
-    if (!signal.accountId) return acc;
-    const existing = acc[signal.accountId];
-    if (!existing || existing < signal.occurredAt) {
-      acc[signal.accountId] = signal.occurredAt;
-    }
-    return acc;
-  }, {});
-
-  const hotAccounts = accounts
-    .filter((account) => account.overallScore >= 80)
-    .slice(0, 6)
-    .map((account) => ({
-      id: account.id,
-      name: account.name,
-      owner: account.namedOwner?.name ?? "Unassigned",
-      segment: formatEnumLabel(account.segment),
-      score: account.overallScore,
-      lastSignalAt: formatRelativeTime(lastSignalByAccount[account.id] ?? now),
-    }));
-
+  const unmatchedSignals = signals.filter((signal) => signal.status === SignalStatus.UNMATCHED).length;
   const slaCompliant = leads.filter(
     (lead) => lead.firstResponseAt && lead.slaDeadlineAt && lead.firstResponseAt <= lead.slaDeadlineAt,
   ).length;
@@ -129,46 +143,60 @@ export async function getDashboardData(): Promise<DashboardData> {
     (lead) => !lead.firstResponseAt && lead.slaDeadlineAt && lead.slaDeadlineAt > now,
   ).length;
   const slaBreached = leads.length - slaCompliant - slaAtRisk;
-
   const openTasks = tasks.filter((task) => task.status !== TaskStatus.COMPLETED).length;
+  const signalsReceivedToday = signals.filter((signal) => signal.receivedAt >= today).length;
+  const routedToday = routingDecisions.filter((decision) => decision.createdAt >= today).length;
+  const sevenDaySignals = signalVolume14d.slice(-7).reduce((sum, point) => sum + point.signals, 0);
+  const hotAccountShare = accountCount > 0 ? Math.round((hotAccountCount / accountCount) * 100) : 0;
 
   return {
+    asOfIso: now.toISOString(),
     kpis: [
       {
+        key: "signalsReceivedToday",
         label: "Signals received today",
-        value: formatCompactNumber(signals.filter((signal) => signal.receivedAt >= today).length),
-        change: `${signalVolume14d.slice(-7).reduce((sum, point) => sum + point.signals, 0)} in the last 7 days`,
+        value: formatCompactNumber(signalsReceivedToday),
+        rawValue: signalsReceivedToday,
+        change: `${sevenDaySignals} in the last 7 days`,
         tone: "default",
       },
       {
+        key: "routedToday",
         label: "Routed today",
-        value: formatCompactNumber(
-          routingDecisions.filter((decision) => decision.createdAt >= today).length,
-        ),
+        value: formatCompactNumber(routedToday),
+        rawValue: routedToday,
         change: `${formatCompactNumber(routingDecisions.length)} recent routing decisions`,
         tone: "positive",
       },
       {
+        key: "unmatchedSignals",
         label: "Unmatched signals",
-        value: formatCompactNumber(unmatchedSignals.length),
+        value: formatCompactNumber(unmatchedSignals),
+        rawValue: unmatchedSignals,
         change: "Ops review queue needs manual resolution",
-        tone: unmatchedSignals.length > 2 ? "warning" : "default",
+        tone: unmatchedSignals > 2 ? "warning" : "default",
       },
       {
+        key: "hotAccounts",
         label: "Hot accounts",
-        value: formatCompactNumber(hotAccounts.length),
-        change: `${Math.round((hotAccounts.length / accounts.length) * 100)}% of the tracked portfolio`,
+        value: formatCompactNumber(hotAccountCount),
+        rawValue: hotAccountCount,
+        change: `${hotAccountShare}% of the tracked portfolio`,
         tone: "positive",
       },
       {
+        key: "slaBreaches",
         label: "SLA breaches",
         value: formatCompactNumber(slaBreached),
+        rawValue: slaBreached,
         change: `${slaCompliant} leads resolved within target`,
         tone: slaBreached > 4 ? "danger" : "warning",
       },
       {
+        key: "averageSpeedToLead",
         label: "Avg. speed-to-lead",
         value: averageResponseMinutes ? `${Math.round(averageResponseMinutes / 60)}h` : "n/a",
+        rawValue: averageResponseMinutes,
         change: `${openTasks} open tasks across active queues`,
         tone: "default",
       },
@@ -179,27 +207,194 @@ export async function getDashboardData(): Promise<DashboardData> {
       { label: "At risk", value: slaAtRisk, tone: "warning" },
       { label: "Breached", value: slaBreached, tone: "danger" },
     ],
-    hotAccounts,
-    unmatchedSignals,
-    recentRoutingDecisions: routingDecisions.map((decision) => ({
-      id: decision.id,
-      accountName: decision.account?.name ?? "Unmatched account",
-      ownerName: decision.assignedOwner?.name ?? "Ops review",
-      queue: decision.assignedQueue,
-      decisionType: formatEnumLabel(decision.decisionType),
-      createdAt: formatRelativeTime(decision.createdAt),
-      explanation: decision.explanation,
+  };
+}
+
+export async function getHotAccounts(): Promise<HotAccountContract[]> {
+  const accounts = await db.account.findMany({
+    where: {
+      overallScore: {
+        gte: 80,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      domain: true,
+      segment: true,
+      status: true,
+      overallScore: true,
+      namedOwnerId: true,
+      namedOwner: {
+        select: {
+          name: true,
+        },
+      },
+      signals: {
+        take: 1,
+        orderBy: {
+          occurredAt: "desc",
+        },
+        select: {
+          occurredAt: true,
+        },
+      },
+    },
+  });
+
+  return accounts
+    .map((account) => ({
+      id: account.id,
+      name: account.name,
+      domain: account.domain,
+      ownerId: account.namedOwnerId,
+      ownerName: account.namedOwner?.name ?? null,
+      segment: account.segment,
+      segmentLabel: formatEnumLabel(account.segment),
+      status: account.status,
+      statusLabel: formatEnumLabel(account.status),
+      score: account.overallScore,
+      lastSignalAtIso: account.signals[0]?.occurredAt.toISOString() ?? null,
+      lastSignalAtLabel: getRelativeLabel(account.signals[0]?.occurredAt),
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      const leftSignalAt = left.lastSignalAtIso ? new Date(left.lastSignalAtIso).getTime() : 0;
+      const rightSignalAt = right.lastSignalAtIso ? new Date(right.lastSignalAtIso).getTime() : 0;
+
+      if (rightSignalAt !== leftSignalAt) {
+        return rightSignalAt - leftSignalAt;
+      }
+
+      return left.name.localeCompare(right.name);
+    })
+    .slice(0, 6);
+}
+
+export async function getRecentSignals(): Promise<RecentSignalContract[]> {
+  const signals = await db.signalEvent.findMany({
+    take: 8,
+    orderBy: {
+      occurredAt: "desc",
+    },
+    select: {
+      id: true,
+      eventType: true,
+      sourceSystem: true,
+      status: true,
+      occurredAt: true,
+      receivedAt: true,
+      normalizedPayloadJson: true,
+      accountId: true,
+      account: {
+        select: {
+          name: true,
+        },
+      },
+      contactId: true,
+      contact: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      leadId: true,
+      lead: {
+        select: {
+          source: true,
+          temperature: true,
+        },
+      },
+    },
+  });
+
+  return signals.map(mapRecentSignal);
+}
+
+async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
+  const routingDecisions = await db.routingDecision.findMany({
+    take: 6,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      decisionType: true,
+      assignedQueue: true,
+      explanation: true,
+      createdAt: true,
+      account: {
+        select: {
+          name: true,
+        },
+      },
+      assignedOwner: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  return routingDecisions.map((decision) => ({
+    id: decision.id,
+    accountName: decision.account?.name ?? "Unmatched account",
+    ownerName: decision.assignedOwner?.name ?? "Ops review",
+    queue: decision.assignedQueue,
+    decisionType: formatEnumLabel(decision.decisionType),
+    createdAt: formatRelativeTime(decision.createdAt),
+    explanation: decision.explanation,
+  }));
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const [summary, hotAccounts, recentSignals, recentRoutingDecisions] = await Promise.all([
+    getDashboardSummary(),
+    getHotAccounts(),
+    getRecentSignals(),
+    getRecentRoutingFeed(),
+  ]);
+
+  return {
+    kpis: summary.kpis.map(({ label, value, change, tone }) => ({
+      label,
+      value,
+      change,
+      tone,
     })),
+    signalVolume14d: summary.signalVolume14d,
+    slaHealth: summary.slaHealth,
+    hotAccounts: hotAccounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      owner: account.ownerName ?? "Unassigned",
+      segment: account.segmentLabel,
+      score: account.score,
+      lastSignalAt: account.lastSignalAtLabel ?? "No recent signals",
+    })),
+    unmatchedSignals: recentSignals
+      .filter((signal) => signal.isUnmatched)
+      .map((signal) => ({
+        id: signal.id,
+        eventType: signal.eventTypeLabel,
+        sourceSystem: signal.sourceSystem,
+        receivedAt: signal.receivedAtLabel,
+        recommendation: signal.recommendedQueue ?? "Ops review",
+      })),
+    recentRoutingDecisions,
   };
 }
 
 export async function getWorkspaceTeasers(): Promise<Record<string, ModulePlaceholderConfig>> {
   const [leadCount, openTaskCount, signalCount, routingCount, activeRuleCount] = await Promise.all([
-    prisma.lead.count(),
-    prisma.task.count({ where: { status: { not: TaskStatus.COMPLETED } } }),
-    prisma.signalEvent.count(),
-    prisma.routingDecision.count(),
-    prisma.ruleConfig.count({ where: { isActive: true } }),
+    db.lead.count(),
+    db.task.count({ where: { status: { not: TaskStatus.COMPLETED } } }),
+    db.signalEvent.count(),
+    db.routingDecision.count(),
+    db.ruleConfig.count({ where: { isActive: true } }),
   ]);
 
   return {
