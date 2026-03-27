@@ -21,6 +21,7 @@ import { AccountHeader } from "@/components/accounts/AccountHeader";
 import { SectionCard } from "@/components/accounts/SectionCard";
 import { Badge } from "@/components/shared/Badge";
 import { Card } from "@/components/shared/Card";
+import { getTaskPriorityTone } from "@/lib/badgeHelpers";
 import { cn } from "@/lib/utils";
 import { getAccountDetail } from "@/lib/queries/accounts";
 import type {
@@ -285,18 +286,11 @@ function ContactCardItem({ contact }: { contact: ContactCard }) {
 }
 
 function TaskRow({ task }: { task: TaskListItem }) {
-  const priorityTone =
-    task.priority === "Urgent"
-      ? "danger"
-      : task.priority === "High"
-        ? "warning"
-        : "neutral";
-
   return (
     <div className="rounded-2xl border border-border bg-panel-muted/70 p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="font-semibold text-foreground">{task.title}</p>
-        <Badge tone={priorityTone}>{task.priority}</Badge>
+        <Badge tone={getTaskPriorityTone(task.priority)}>{task.priority}</Badge>
       </div>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</p>
       <p className="mt-3 text-sm text-foreground">

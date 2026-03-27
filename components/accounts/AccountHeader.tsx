@@ -2,6 +2,7 @@ import type { AccountDetailView } from "@/lib/types";
 
 import { Badge } from "@/components/shared/Badge";
 import { Card } from "@/components/shared/Card";
+import { getSegmentTone } from "@/lib/badgeHelpers";
 import { cn } from "@/lib/utils";
 
 type AccountHeaderProps = Pick<
@@ -107,7 +108,7 @@ export function AccountHeader({
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Left: classification badges */}
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="accent">{segment}</Badge>
+          <Badge tone={getSegmentTone(segment)}>{segment}</Badge>
           <Badge tone={getStatusTone(score)}>{status}</Badge>
           <Badge tone="neutral">{tier}</Badge>
         </div>
