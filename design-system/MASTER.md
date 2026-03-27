@@ -87,6 +87,7 @@ Use `Card` component from `components/shared/Card.tsx`.
 ```
 rounded-2xl border border-border bg-panel-muted/70 p-4
 ```
+Never use `bg-white/70` — always `bg-panel-muted/70`.
 
 ### Attribute chip (compact metadata)
 ```
@@ -135,11 +136,54 @@ rounded-lg border border-border bg-panel px-2 py-0.5 text-[11px] font-medium tex
 
 | Tone | Usage |
 |---|---|
-| `accent` | Segment (Enterprise, SMB, etc.) |
-| `positive` | Healthy, Matched, Completed |
-| `warning` | Warm, Watch, Unmatched |
-| `danger` | Urgent, At Risk, Overdue |
+| `accent` | Active, in-progress, brand highlight |
+| `positive` | Healthy, Matched, Completed, high-value |
+| `warning` | Warm, Watch, Unmatched, needs attention |
+| `danger` | Urgent, At Risk, Overdue, critical |
 | `neutral` | Neutral metadata, count pills, tier |
+
+---
+
+## Canonical Badge Mappings
+
+Helpers defined in `lib/badgeHelpers.ts`. Always import from there — never inline tone logic.
+
+### Segment → Badge tone
+
+| Segment | Tone | Rationale |
+|---|---|---|
+| SMB | `neutral` | Standard baseline |
+| Mid Market | `accent` | Growth-stage teal highlight |
+| Enterprise | `warning` | High attention required |
+| Strategic | `positive` | Top-value accounts |
+
+### Lifecycle Stage → Badge tone
+
+| Stage | Tone | Rationale |
+|---|---|---|
+| Prospect | `neutral` | Early stage, no commitment |
+| Engaged | `accent` | Active interest |
+| Sales Ready | `positive` | Conversion-ready |
+| Customer | `warning` | Requires ongoing retention |
+| Nurture | `danger` | At-risk, needs re-engagement |
+
+### Account Status → Badge tone
+
+| Status | Tone |
+|---|---|
+| Hot | `positive` |
+| Healthy | `positive` |
+| Watch | `warning` |
+| At Risk | `danger` |
+
+### Task Priority → Badge tone
+
+| Priority | Tone |
+|---|---|
+| Urgent | `danger` |
+| High | `warning` |
+| Medium | `accent` |
+| Low | `neutral` |
 
 ---
 
@@ -155,6 +199,24 @@ rounded-lg border border-border bg-panel px-2 py-0.5 text-[11px] font-medium tex
 | Owner pill | `rounded-2xl` |
 | Score card | `rounded-[28px]` |
 | Leads gap placeholder | `rounded-2xl border-dashed` |
+
+---
+
+## Responsive Breakpoints
+
+| Breakpoint | Width | Usage |
+|---|---|---|
+| `sm:` | 640px | 2-column KPI grid start |
+| `md:` | 768px | 2-column table/card layouts |
+| `lg:` | 1024px | Sidebar appears, desktop nav |
+| `xl:` | 1280px | 3+ column grids, side-by-side content |
+
+### Mobile rules
+
+- Sidebar hidden below `lg:`
+- All grids collapse to 1 column below `sm:`
+- Flex rows with multiple badges/buttons use `flex-wrap`
+- Tables use `overflow-x-auto` wrapper
 
 ---
 
