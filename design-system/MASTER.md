@@ -1,333 +1,203 @@
-# Design System — GTM Signal Orchestrator
+# GTM Signal Orchestrator — Design System Master
 
-> **Source of truth for all UI work.** When building a specific page, first check
-> `design-system/pages/[page-name].md`. If that file exists, its rules override this file.
-> If not, follow everything here strictly.
->
-> Generated with UI UX Pro Max · 2026-03-26 · Style: Data-Dense Dashboard
+> When building a specific page, check `design-system/pages/[page].md` first.
+> If that file exists, its rules override this file. Otherwise use this file exclusively.
 
----
-
-## Project Profile
-
-- **Type:** Internal GTM operations tool (operator console)
-- **Audience:** Revenue operations / GTM practitioners
-- **Aesthetic:** Clean, minimal, data-dense, recruiter-friendly
-- **Mode:** Light only (no dark mode)
-- **Priority:** Desktop-first, responsive down to tablet
-- **Stack:** Next.js 16, React 19, Tailwind v4, Recharts, Lucide icons, TypeScript
+**Generated:** 2026-03-26
+**Style:** Data-Dense Dashboard — Minimal, internal-tool, operator workspace
+**Inspiration:** Linear, Plain, Retool
+**Audience:** Revenue operations teams, GTM engineers
+**Goal:** Recruiter-friendly, data-dense, clarity over flash
 
 ---
 
-## Color System
+## Color Tokens
 
-### CSS Variables (defined in `app/globals.css`)
+All classes must use these Tailwind tokens. Do not use raw hex values.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--background` | `#f3f5f8` | Page background |
-| `--background-accent` | `#eef2f4` | Subtle section tints |
-| `--panel` | `#ffffff` | Card/panel background |
-| `--panel-muted` | `#f6f8fb` | Muted card, table header |
-| `--panel-elevated` | `#fbfcfd` | Elevated surface |
-| `--foreground` | `#14202b` | Primary text |
-| `--muted-foreground` | `#5e6b79` | Secondary text, labels |
-| `--border` | `rgba(20, 32, 43, 0.11)` | Default borders |
-| `--border-strong` | `rgba(20, 32, 43, 0.18)` | Emphasized borders |
-| `--accent` | `#0f766e` | Teal — brand accent, CTAs |
-| `--accent-foreground` | `#effcf9` | Text on accent bg |
-| `--accent-muted` | `rgba(15, 118, 110, 0.1)` | Accent tint backgrounds |
-| `--success` | `#18794e` | Positive state |
-| `--warning` | `#b66a1d` | Warning/at-risk state |
-| `--danger` | `#b42318` | Error/breach state |
-| `--shadow-sm` | `0 10px 30px rgba(20, 32, 43, 0.06)` | Default card shadow |
-
-### Semantic Tone Map
-
-| Tone | Tailwind Class Prefix | Use For |
-|------|-----------------------|---------|
-| `default` | `text-accent` | Neutral informational |
-| `positive` | `text-success` | Good metrics, hot status |
-| `warning` | `text-warning` | At-risk, needs attention |
-| `danger` | `text-danger` | SLA breach, critical |
-| `neutral` | `text-foreground` | Standard content |
-
-### Do Not Use
-- ❌ Raw hex values in JSX — always use CSS variables via Tailwind tokens
-- ❌ Dark-mode classes (`dark:`) — light mode only
-- ❌ Zinc/slate/gray scales — use project tokens instead
+| Token (Tailwind) | CSS Variable | Hex | Usage |
+|---|---|---|---|
+| `bg-background` | `--background` | `#f3f5f8` | Page background |
+| `bg-panel` | `--panel` | `#ffffff` | Card / panel surfaces |
+| `bg-panel-muted` | `--panel-muted` | `#f6f8fb` | Inner card backgrounds, row alternates |
+| `bg-panel-elevated` | `--panel-elevated` | `#fbfcfd` | Elevated overlays |
+| `text-foreground` | `--foreground` | `#14202b` | Primary text |
+| `text-muted-foreground` | `--muted-foreground` | `#5e6b79` | Labels, secondary text, metadata |
+| `border-border` | `--border` | `rgba(20,32,43,0.11)` | Standard borders |
+| `border-border-strong` | `--border-strong` | `rgba(20,32,43,0.18)` | Emphasized borders |
+| `text-accent` / `bg-accent` | `--accent` | `#0f766e` | Teal accent — CTAs, active states |
+| `bg-accent-muted` | `--accent-muted` | `rgba(15,118,110,0.10)` | Accent backgrounds on chips/icons |
+| `text-success` / `bg-success` | `--success` | `#18794e` | Positive status |
+| `text-warning` / `bg-warning` | `--warning` | `#b66a1d` | Warning / warm status |
+| `text-danger` / `bg-danger` | `--danger` | `#b42318` | Error / danger status |
 
 ---
 
 ## Typography
 
-### Font Stack
+| Role | Font | Tailwind |
+|---|---|---|
+| Body / UI | Manrope | `font-sans` (default) |
+| Numbers / Code / Scores | IBM Plex Mono | `font-mono` |
 
-| Role | Font | Variable | Usage |
-|------|------|----------|-------|
-| Body / UI | `Manrope` | `--font-sans` | All UI text, labels, paragraphs |
-| Numbers / Code | `IBM Plex Mono` | `--font-mono` | Metric values, scores, IDs |
-
-### Type Scale
-
-| Class | Size | Weight | Usage |
-|-------|------|--------|-------|
-| Page title | `text-3xl font-semibold tracking-tight` | 600 | `<h1>` page headers |
-| Section title | `text-xl font-semibold` | 600 | Card headings |
-| Eyebrow | `text-xs font-semibold uppercase tracking-[0.16em]` | 600 | Section labels, card subtitles |
-| Body | `text-sm leading-7` | 400 | Descriptions, explanations |
-| Small / meta | `text-xs font-medium` | 500 | Timestamps, secondary info |
-| Metric value | `font-mono text-3xl font-semibold tracking-tight` | 600 | KPI numbers |
-| Score | `font-mono text-lg font-semibold` | 600 | Account scores |
-
-### Rules
-- Minimum body text: `text-sm` (14px) on desktop
-- Line height body: `leading-7` (1.75) for readability
-- Line length: max `max-w-3xl` for prose descriptions
+**Scale rules:**
+- Metric / score values: `font-mono text-3xl font-semibold` or `font-mono text-4xl`
+- Section titles (h2): `text-xl font-semibold text-foreground`
+- Page title (h1): `text-2xl font-semibold tracking-tight text-foreground`
+- Eyebrow labels: `text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground`
+- Body text: `text-sm text-foreground leading-6` or `leading-7` for paragraphs
+- Secondary / metadata: `text-sm text-muted-foreground`
+- Micro labels: `text-xs text-muted-foreground`
+- Line height body: 1.5–1.75 (`leading-6` or `leading-7`)
+- Max line length: 65–75 characters (`max-w-prose`)
 
 ---
 
-## Spacing & Radius Tokens
+## Spacing
 
-### Border Radius
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `rounded-3xl` | 24px | Cards (`Card` component), table wrappers |
-| `rounded-[28px]` | 28px | Metric cards |
-| `rounded-2xl` | 16px | Inner items (feed items, signal cards) |
-| `rounded-xl` | 12px | Smaller widgets |
-| `rounded-full` | 9999px | Badges, avatar dots |
-| `rounded-[16px]` | 16px | Tooltip, chart popover |
-
-### Spacing Scale
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `gap-2` | 8px | Badge internal gap, icon gaps |
-| `gap-3` | 12px | Row item gaps |
-| `gap-4` | 16px | Grid gaps (KPI row) |
-| `gap-5` | 20px | Card internal gap |
-| `gap-6` | 24px | Section gaps, chart row |
-| `p-5` | 20px | Metric card padding |
-| `p-6` | 24px | Standard card padding |
-| `px-5 py-4` | 20px/16px | Table cell padding |
-| `px-2.5 py-1` | 10px/4px | Badge padding |
+| Token | Value | Tailwind | Usage |
+|---|---|---|---|
+| xs | 4px | `gap-1` / `p-1` | Icon gaps |
+| sm | 8px | `gap-2` / `p-2` | Inline spacing |
+| md | 16px | `gap-4` / `p-4` | Standard item padding |
+| lg | 24px | `gap-6` / `p-6` | Card padding, section gaps |
+| xl | 32px | `gap-8` | Large section spacing |
 
 ---
 
-## Component Patterns
+## Shadows
+
+| Level | Value | Usage |
+|---|---|---|
+| `shadow-[var(--shadow-sm)]` | `0 10px 30px rgba(20,32,43,0.06)` | All Card components |
+
+Do not use `shadow-md` or `shadow-lg` — only `shadow-[var(--shadow-sm)]`.
+
+---
+
+## Components
 
 ### Card
-
-```tsx
-<section className="rounded-3xl border border-border bg-panel shadow-[var(--shadow-sm)]">
 ```
-- Always `<section>` element (semantic landmark)
-- `rounded-3xl` radius, white background, soft shadow
-- Add `p-6` for standard padding inside
-
-### Metric Card (KPI)
-
-```tsx
-<Card className="rounded-[28px] p-5">
-  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-  <div className="mt-4 flex items-end justify-between gap-4">
-    <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">{value}</p>
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
-      {change} <ArrowRight className="size-3.5" />
-    </span>
-  </div>
-</Card>
+rounded-3xl border border-border bg-panel shadow-[var(--shadow-sm)]
 ```
-- Slightly larger radius than standard cards (`rounded-[28px]`)
-- Monospace value font
-- Optional `icon` prop (top-right, Lucide icon, `size-4` or `size-5`, `text-muted-foreground`)
-- Tone colors: `text-accent` / `text-success` / `text-warning` / `text-danger`
+Use `Card` component from `components/shared/Card.tsx`.
+
+### Inner item rows (inside cards)
+```
+rounded-2xl border border-border bg-panel-muted/70 p-4
+```
+
+### Attribute chip (compact metadata)
+```
+rounded-xl border border-border bg-panel-muted/80 px-3 py-2
+```
+Label: `text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground`
+Value: `text-sm font-medium text-foreground mt-0.5`
+
+### Large attribute box (2×2 grid)
+```
+rounded-2xl border border-border bg-panel-muted/80 p-4
+```
+Label: `text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground`
+Value: `mt-3 text-sm font-semibold text-foreground`
 
 ### Badge
+Use `Badge` component from `components/shared/Badge.tsx`.
+Tone map: `neutral` | `accent` | `positive` | `warning` | `danger`
 
-```tsx
-<Badge tone="accent|neutral|positive|warning|danger">{text}</Badge>
+### Icon chip (section header)
+Default: `rounded-2xl border border-border bg-panel-muted p-2 text-foreground`
+Accent: `rounded-2xl border border-accent/15 bg-accent-muted p-2 text-accent`
+
+### Score display card
 ```
-- `rounded-full`, `px-2.5 py-1`
-- `text-[11px] font-semibold uppercase tracking-[0.14em]`
-- Five tones with matching border + bg + text colors (see `components/shared/Badge.tsx`)
-- Always use `Badge` component — never build custom inline badges
-
-### Table (Hot Accounts, data lists)
-
-```tsx
-<div className="overflow-hidden rounded-3xl border border-border">
-  <table className="min-w-full divide-y divide-border text-left">
-    <thead className="bg-panel-muted/80">
-      <tr>
-        <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Column
-        </th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-border">
-      <tr className="bg-white/60 hover:bg-panel-muted/70 transition-colors cursor-pointer">
-        <td className="px-5 py-4 text-sm text-foreground">Value</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+rounded-[28px] border border-border bg-panel px-5 py-4 shadow-[var(--shadow-sm)]
 ```
-- Outer wrapper: `rounded-3xl border border-border overflow-hidden`
-- Header: `bg-panel-muted/80`, eyebrow-style column labels
-- Row hover: `hover:bg-panel-muted/70 transition-colors`
-- Clickable rows: `cursor-pointer`
-- Score column: `font-mono text-lg font-semibold`
+Eyebrow: `text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground`
+Value: `font-mono text-4xl font-semibold mt-2`
+Score heat colors: ≥80 → `text-success`, ≥65 → `text-warning`, <65 → `text-foreground`
 
-### Score Badge
-
-Score-bucket color coding applied via `Badge` component:
-| Score | Bucket | Badge tone |
-|-------|--------|------------|
-| ≥ 80 | Hot | `positive` |
-| 65–79 | Warm | `warning` |
-| < 65 | Cold | `neutral` |
-
-### Chart Card
-
-```tsx
-<Card className="p-6">
-  <div className="flex items-center justify-between gap-3">
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Eyebrow</p>
-      <h2 className="mt-2 text-xl font-semibold text-foreground">Section title</h2>
-    </div>
-    <Badge tone="accent"><Icon className="mr-1 size-3.5" /> Label</Badge>
-  </div>
-  <div className="mt-6">
-    {/* Chart component */}
-  </div>
-</Card>
+### Back navigation link
 ```
-- Chart height: `h-[280px]`
-- Chart colors: teal `#0f766e` (signals), blue `#1d4ed8` (matched/secondary)
-- Axis ticks: `fill: #5e6b79`, `fontSize: 12`
-- Grid: `vertical={false}`, `stroke: rgba(20, 32, 43, 0.08)`
-- Tooltip: `borderRadius: 16`, white bg, soft shadow
-
-### Activity Feed (Timeline)
-
-```tsx
-<div className="space-y-0 relative">
-  {/* vertical rail */}
-  <div className="absolute left-[11px] top-4 bottom-4 w-px bg-border" />
-  {items.map(item => (
-    <div className="relative flex gap-4 py-4">
-      {/* dot */}
-      <div className="relative z-10 mt-1 size-[22px] shrink-0 rounded-full border-2 border-accent/30 bg-panel flex items-center justify-center">
-        <div className="size-2 rounded-full bg-accent" />
-      </div>
-      {/* content */}
-      <div className="flex-1 min-w-0">...</div>
-    </div>
-  ))}
-</div>
+inline-flex h-10 items-center gap-2 rounded-2xl border border-border bg-panel px-3 text-sm
+font-medium text-muted-foreground hover:bg-panel-muted hover:text-foreground
 ```
-- Left rail: 1px border line, absolutely positioned
-- Dot: 22px circle, accent border + bg fill
-- Item padding: `py-4`
-- No dividers needed (spacing is sufficient)
 
-### Page Header
-
-```tsx
-<PageHeader
-  eyebrow="Section label"
-  title="Page title"
-  description="Supporting description..."
-  actions={<Badge> ... </Badge>}
-/>
+### Source / system chip (inline in timeline)
 ```
-- `eyebrow` renders as teal accent badge
-- Title: `text-3xl font-semibold tracking-tight`
-- Description: `text-sm leading-7 text-muted-foreground max-w-3xl`
+rounded-lg border border-border bg-panel px-2 py-0.5 text-[11px] font-medium text-muted-foreground
+```
 
 ---
 
-## Layout Grid
+## Badge Tones
 
-### App Shell
-- Sidebar: `272px` fixed width, sticky, desktop only
-- Content: `minmax(0, 1fr)`, scrollable
-- Top header: full-width, above content
-
-### Dashboard Layout
-```
-Row 1: KPI cards      — grid gap-4, md:2-col, xl:3-col
-Row 2: Charts         — xl:grid-cols-[1.55fr_1fr], gap-6
-Row 3: Data + Feed    — xl:grid-cols-[1.45fr_0.95fr], gap-6
-```
-
-### Shell Inset
-- Max width: constrained within content area
-- Padding: `px-6 py-8` or similar (defined in `ShellInset.tsx`)
+| Tone | Usage |
+|---|---|
+| `accent` | Segment (Enterprise, SMB, etc.) |
+| `positive` | Healthy, Matched, Completed |
+| `warning` | Warm, Watch, Unmatched |
+| `danger` | Urgent, At Risk, Overdue |
+| `neutral` | Neutral metadata, count pills, tier |
 
 ---
 
-## Interaction & Animation
+## Borders and Radius
 
-| Behavior | Spec |
-|----------|------|
-| Row hover | `hover:bg-panel-muted/70 transition-colors duration-150` |
-| Button hover | `opacity: 0.9`, no layout shift |
-| Link cursor | `cursor-pointer` on all interactive rows/cards |
-| Chart tooltip | Appear/disappear on hover — no delay |
-| Focus ring | `focus-visible:ring-2 focus-visible:ring-accent` |
-| Reduced motion | Respect `prefers-reduced-motion` — skip transitions if set |
+| Pattern | Class |
+|---|---|
+| Page card | `rounded-3xl` |
+| Section inner items | `rounded-2xl` |
+| Compact chips | `rounded-xl` |
+| Micro chips (source system) | `rounded-lg` |
+| Avatar initials circle | `rounded-xl` |
+| Owner pill | `rounded-2xl` |
+| Score card | `rounded-[28px]` |
+| Leads gap placeholder | `rounded-2xl border-dashed` |
 
 ---
 
-## Iconography
+## Transitions
 
-- Library: **Lucide React** (`lucide-react`) — consistent `size-{n}` prop
-- Standard sizes: `size-3.5` (badge), `size-4` (inline), `size-5` (card header)
-- Color: inherit from parent (`text-muted-foreground`, `text-accent`, etc.)
-- No emojis as icons — ever
+All `a`, `button`, `select`, `input` have global transitions at 180ms ease (set in globals.css).
+- Do not add `transition` classes to these elements — already covered.
+- For other interactive elements: `transition-colors duration-[180ms]`
+- Never use `transition` durations above 300ms.
+- Respect `prefers-reduced-motion` — handled globally in globals.css.
 
-### KPI Icon Map
+---
 
-| KPI Label | Lucide Icon |
-|-----------|-------------|
-| Signals received today | `Activity` |
-| Routed today | `Router` |
-| Unmatched signals | `AlertTriangle` |
-| Hot accounts | `Flame` |
-| SLA breaches | `ShieldAlert` |
-| Avg. speed-to-lead | `Timer` |
+## Icons
+
+Use `lucide-react` exclusively. No emojis as icons.
+Standard size: `size-5` in section headers, `size-4` in inline contexts.
 
 ---
 
 ## Anti-Patterns
 
-- ❌ Emojis as icons — use Lucide SVGs
-- ❌ Raw hex values in Tailwind classes — use CSS variable tokens
-- ❌ `grid-cols-*` that ignore the asymmetric dashboard ratios — use `[1.55fr_1fr]` etc.
-- ❌ Missing `cursor-pointer` on clickable table rows or cards
-- ❌ Instant state changes — all hover/focus transitions must be 150–300ms
-- ❌ Invisible focus states — all interactive elements need `focus-visible:ring-*`
-- ❌ Inventing backend fields — treat data contract as immutable
-- ❌ Ornate decoration, gradients, shadows heavier than `--shadow-sm`
-- ❌ Freelance Tailwind color choices (zinc, slate, gray) — use project tokens
-- ❌ Framer Motion — not a project dependency; plain CSS transitions only
+- ❌ Raw hex colors — always use design token classes
+- ❌ `bg-white/70` — use `bg-panel-muted/70`
+- ❌ Ornate or decorative design
+- ❌ `shadow-md` / `shadow-lg` — only `shadow-[var(--shadow-sm)]`
+- ❌ Emojis as icons
+- ❌ Missing `cursor-pointer` on interactive non-button elements
+- ❌ Layout-shifting hover transforms (no `hover:scale-*` on cards)
+- ❌ Low contrast: minimum 4.5:1 for normal text
+- ❌ Invisible focus states
 
 ---
 
 ## Pre-Delivery Checklist
 
-- [ ] All icons from Lucide (no emojis)
-- [ ] All colors via CSS variable tokens (no raw hex in JSX)
-- [ ] `cursor-pointer` on all clickable elements (table rows, linked cards)
-- [ ] Hover transitions `transition-colors duration-150` or similar
-- [ ] Focus states visible: `focus-visible:ring-2 focus-visible:ring-accent`
-- [ ] TypeScript types — no `any`, no implicit types
-- [ ] No backend files modified (check git diff)
-- [ ] Score badges color-coded by bucket (≥80 green, 65–79 amber, <65 neutral)
-- [ ] Empty states handled for all data arrays
-- [ ] `aria-label` on icon-only buttons
+- [ ] All colors use design token classes (no raw hex)
+- [ ] `bg-white/70` replaced with `bg-panel-muted/70`
+- [ ] All icons from `lucide-react`, consistent `size-4` or `size-5`
+- [ ] `cursor-pointer` on all clickable non-button elements
+- [ ] Hover states use `hover:bg-panel-muted` pattern (no scale)
+- [ ] Focus states visible (ring) on all keyboard-interactive elements
+- [ ] Empty states present for every list/section
+- [ ] Score values use `font-mono`
+- [ ] Section headings use `<h2>` / page heading uses `<h1>`
+- [ ] `aria-label` on icon-only buttons and back links
