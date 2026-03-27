@@ -71,17 +71,17 @@ Placeholder modules:
 
 The repo seeds a deterministic GTM workspace with:
 
-- 10 users
-- 24 accounts
-- 48 contacts
-- 28 leads
-- 96 signals
-- 36 tasks
-- 28 routing decisions
-- 72 score history events
-- 72 audit log entries
+- 8 users
+- 20 accounts
+- 40 contacts
+- 30 leads
+- 100 signals
+- 40 tasks
+- 30 routing decisions
+- 60 score history events
+- 60 audit log entries
 
-Use `/accounts/acc_northstar_analytics` or `/accounts/acc_ironpeak` for quick detail-page checks after seeding.
+Use `/accounts/acc_summitflow_finance` or `/accounts/acc_ironpeak` for quick detail-page checks after seeding.
 
 ## Architecture notes
 

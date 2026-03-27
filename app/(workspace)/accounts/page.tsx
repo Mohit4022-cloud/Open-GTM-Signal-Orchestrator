@@ -24,7 +24,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
         actions={
           <div className="flex flex-wrap gap-2">
             <Badge tone="accent">URL-driven filters</Badge>
-            <Badge tone="neutral">24 seeded accounts</Badge>
+            <Badge tone="neutral">20 seeded accounts</Badge>
           </div>
         }
       />
