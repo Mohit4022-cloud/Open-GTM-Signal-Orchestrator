@@ -150,11 +150,23 @@ enum AuditEventType {
   SIGNAL_DUPLICATE_SKIPPED
   SIGNAL_INGEST_ERROR
   SCORE_UPDATED
+  SCORE_RECOMPUTED
+  SCORE_THRESHOLD_CROSSED
+  SCORE_MANUAL_PRIORITY_OVERRIDDEN
+  SIGNAL_ATTACHED_AND_RESCORED
   ROUTE_ASSIGNED
   TASK_CREATED
   SLA_BREACHED
   USER_OVERRIDE
   RULE_CONFIG_CHANGED
+}
+
+enum ScoreTriggerType {
+  SIGNAL_INGESTED
+  SIGNAL_ATTACHED
+  MANUAL_PRIORITY_CHANGED
+  RELATIONSHIP_CHANGED
+  MANUAL_RECOMPUTE
 }
 
 model User {
@@ -187,8 +199,22 @@ model Account {
   accountTier       AccountTier
   lifecycleStage    LifecycleStage
   fitScore          Int
+  intentScore       Int               @default(0)
+  engagementScore   Int               @default(0)
+  recencyScore      Int               @default(0)
+  productUsageScore Int               @default(0)
+  manualPriorityScore Int             @default(0)
+  manualPriorityBoost Int             @default(0)
+  manualPriorityNote String?
+  manualPriorityUpdatedAt DateTime?
   overallScore      Int
+  temperature       Temperature       @default(COLD)
   status            AccountStatus
+  scoreBreakdownJson Json             @default("{}")
+  scoreReasonCodesJson Json           @default("[]")
+  scoreExplanationJson Json           @default("{}")
+  scoreLastComputedAt DateTime?
+  scoringVersion    String            @default("scoring/v1")
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   namedOwner        User?             @relation("NamedOwner", fields: [namedOwnerId], references: [id])
@@ -202,6 +228,7 @@ model Account {
 
   @@index([segment, geography])
   @@index([overallScore])
+  @@index([temperature, overallScore])
   @@index([namedOwnerId])
 }
 
@@ -233,8 +260,22 @@ model Lead {
   inboundType     String
   currentOwnerId  String?
   status          LeadStatus
+  fitScore        Int                @default(0)
+  intentScore     Int                @default(0)
+  engagementScore Int                @default(0)
+  recencyScore    Int                @default(0)
+  productUsageScore Int              @default(0)
+  manualPriorityScore Int            @default(0)
+  manualPriorityBoost Int            @default(0)
+  manualPriorityNote String?
+  manualPriorityUpdatedAt DateTime?
   score           Int
   temperature     Temperature
+  scoreBreakdownJson Json            @default("{}")
+  scoreReasonCodesJson Json          @default("[]")
+  scoreExplanationJson Json          @default("{}")
+  scoreLastComputedAt DateTime?
+  scoringVersion  String             @default("scoring/v1")
   slaDeadlineAt   DateTime?
   firstResponseAt DateTime?
   routedAt        DateTime?
@@ -280,10 +321,13 @@ model SignalEvent {
   account               Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
   contact               Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   lead                  Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  triggeredScoreHistory ScoreHistory[] @relation("ScoreHistoryTriggerSignal")
 
   @@index([accountId])
   @@index([leadId])
   @@index([accountId, occurredAt])
+  @@index([accountId, occurredAt, status])
+  @@index([contactId, occurredAt])
   @@index([status, createdAt])
   @@index([status, occurredAt])
   @@index([accountDomain])
@@ -291,23 +335,32 @@ model SignalEvent {
 }
 
 model ScoreHistory {
-  id             String          @id
-  entityType     ScoreEntityType
-  entityId       String
-  accountId      String?
-  leadId         String?
-  previousScore  Int
-  newScore       Int
-  delta          Int
-  scoreComponent ScoreComponent
-  reasonCode     String
-  createdAt      DateTime        @default(now())
-  account        Account?        @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  lead           Lead?           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  id                   String           @id
+  entityType           ScoreEntityType
+  entityId             String
+  accountId            String?
+  leadId               String?
+  previousScore        Int
+  newScore             Int
+  delta                Int
+  previousTemperature  Temperature
+  newTemperature       Temperature
+  componentBreakdownJson Json
+  reasonCodesJson      Json
+  explanationJson      Json
+  triggerType          ScoreTriggerType
+  triggerSignalId      String?
+  triggerMetadataJson  Json?
+  scoringVersion       String
+  createdAt            DateTime         @default(now())
+  account              Account?         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  lead                 Lead?            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  triggerSignal        SignalEvent?     @relation("ScoreHistoryTriggerSignal", fields: [triggerSignalId], references: [id], onDelete: SetNull)
 
   @@index([accountId, createdAt])
   @@index([leadId, createdAt])
-  @@index([entityType, entityId])
+  @@index([entityType, entityId, createdAt])
+  @@index([triggerSignalId, createdAt])
 }
 
 model RoutingDecision {
