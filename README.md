@@ -1,5 +1,8 @@
 # Open GTM Signal Orchestrator
 
+[![CI](https://github.com/Mohit4022-cloud/GTM-Signal-Orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Mohit4022-cloud/GTM-Signal-Orchestrator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 Open-source GTM engineering workspace for ingesting buyer signals, scoring accounts, routing leads, and powering operator workflows.
 
 ## Why This Project Exists
@@ -157,8 +160,13 @@ Planned next layers for the open-source project:
 
 ## Contributing And Community
 
-This repo is being opened up for GTM engineers and teams who want a realistic signal orchestration foundation they can inspect, extend, and adapt. The contribution workflow, community docs, and support policies live in the repo so teams can collaborate in the open without guessing how the project is maintained.
+This repo is being opened up for GTM engineers and teams who want a realistic signal orchestration foundation they can inspect, extend, and adapt.
+
+- Start with [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Review the [Code of Conduct](./CODE_OF_CONDUCT.md)
+- Use the [Security Policy](./SECURITY.md) for private disclosures
+- Join or start product conversations in [GitHub Discussions](https://github.com/Mohit4022-cloud/GTM-Signal-Orchestrator/discussions)
 
 ## License
 
-This project is intended to be released under the MIT License.
+Released under the [MIT License](./LICENSE).
