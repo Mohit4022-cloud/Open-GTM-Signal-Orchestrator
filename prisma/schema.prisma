@@ -60,7 +60,7 @@ enum Temperature {
 enum SignalType {
   WEBSITE_VISIT
   PRICING_PAGE_VISIT
-  HIGH_INTENT_CLUSTER
+  HIGH_INTENT_PAGE_CLUSTER_VISIT
   FORM_FILL
   WEBINAR_REGISTRATION
   PRODUCT_SIGNUP
@@ -68,15 +68,35 @@ enum SignalType {
   EMAIL_REPLY
   MEETING_BOOKED
   MEETING_NO_SHOW
-  THIRD_PARTY_INTENT
+  THIRD_PARTY_INTENT_EVENT
   MANUAL_SALES_NOTE
   ACCOUNT_STATUS_UPDATE
 }
 
 enum SignalStatus {
+  RECEIVED
+  NORMALIZED
   MATCHED
   UNMATCHED
-  PROCESSED
+  ERROR
+}
+
+enum SignalCategory {
+  WEB_ACTIVITY
+  CONVERSION
+  PRODUCT
+  SALES_ENGAGEMENT
+  SALES_ACTIVITY
+  INTENT
+  MANUAL
+  ACCOUNT_CHANGE
+}
+
+enum SignalStrength {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum ScoreEntityType {
@@ -124,7 +144,11 @@ enum TaskPriority {
 
 enum AuditEventType {
   SIGNAL_INGESTED
+  SIGNAL_NORMALIZED
   IDENTITY_RESOLVED
+  SIGNAL_UNMATCHED_QUEUED
+  SIGNAL_DUPLICATE_SKIPPED
+  SIGNAL_INGEST_ERROR
   SCORE_UPDATED
   ROUTE_ASSIGNED
   TASK_CREATED
@@ -182,48 +206,48 @@ model Account {
 }
 
 model Contact {
-  id         String       @id
-  accountId  String
-  firstName  String
-  lastName   String
-  email      String       @unique
-  title      String
-  department String
-  seniority  String
-  phone      String?
+  id          String      @id
+  accountId   String
+  firstName   String
+  lastName    String
+  email       String      @unique
+  title       String
+  department  String
+  seniority   String
+  phone       String?
   personaType String
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  account    Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  leads      Lead[]
-  signals    SignalEvent[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  leads       Lead[]
+  signals     SignalEvent[]
 
   @@index([accountId])
 }
 
 model Lead {
-  id             String             @id
-  accountId      String
-  contactId      String?
-  source         String
-  inboundType    String
-  currentOwnerId String?
-  status         LeadStatus
-  score          Int
-  temperature    Temperature
-  slaDeadlineAt  DateTime?
+  id              String             @id
+  accountId       String
+  contactId       String?
+  source          String
+  inboundType     String
+  currentOwnerId  String?
+  status          LeadStatus
+  score           Int
+  temperature     Temperature
+  slaDeadlineAt   DateTime?
   firstResponseAt DateTime?
-  routedAt       DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  account        Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  contact        Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  currentOwner   User?              @relation("LeadOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
-  signals        SignalEvent[]
+  routedAt        DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  account         Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contact         Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  currentOwner    User?              @relation("LeadOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
+  signals         SignalEvent[]
   routingDecisions RoutingDecision[]
-  tasks          Task[]
-  scoreHistory   ScoreHistory[]
-  auditLogs      AuditLog[]
+  tasks           Task[]
+  scoreHistory    ScoreHistory[]
+  auditLogs       AuditLog[]
 
   @@index([accountId])
   @@index([currentOwnerId])
@@ -231,25 +255,39 @@ model Lead {
 }
 
 model SignalEvent {
-  id                    String       @id
+  id                    String         @id
   sourceSystem          String
   eventType             SignalType
+  accountDomain         String?
+  contactEmail          String?
   accountId             String?
   contactId             String?
   leadId                String?
+  eventCategory         SignalCategory   @default(MANUAL)
+  intentStrength        SignalStrength   @default(NONE)
+  engagementStrength    SignalStrength   @default(NONE)
+  payloadSummary        String           @default("")
   rawPayloadJson        Json
   normalizedPayloadJson Json
+  identityResolutionCodesJson Json       @default("[]")
   occurredAt            DateTime
   receivedAt            DateTime
-  dedupeKey             String?      @unique
+  dedupeKey             String         @unique
   status                SignalStatus
-  account               Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  contact               Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  lead                  Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  errorMessage          String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @default(now()) @updatedAt
+  account               Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  contact               Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  lead                  Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([accountId])
   @@index([leadId])
+  @@index([accountId, occurredAt])
+  @@index([status, createdAt])
   @@index([status, occurredAt])
+  @@index([accountDomain])
+  @@index([contactEmail])
 }
 
 model ScoreHistory {
