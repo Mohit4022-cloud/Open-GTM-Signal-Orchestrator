@@ -45,7 +45,31 @@ test("POST /api/routing/simulate returns 200 with a structured routing decision"
   assert.equal(payload.simulatedOwner?.id, "usr_owen_price");
   assert.equal(payload.simulatedQueue, "na-west-smb");
   assert.ok(Array.isArray(payload.reasonCodes));
-  assert.ok(payload.reasonCodes.includes("fallback_after_capacity"));
+  assert.deepEqual(payload.reasonCodes, [
+    "existing_owner_preserved",
+    "fallback_after_capacity",
+    "sla_hot_inbound_15m",
+  ]);
+  assert.deepEqual(
+    payload.reasonDetails.map((detail: { code: string }) => detail.code),
+    payload.reasonCodes,
+  );
+  assert.equal(typeof payload.explanation.summary, "string");
+  assert.ok(payload.explanation.summary.length > 0);
+  assert.deepEqual(
+    payload.explanation.reasonDetails.map((detail: { code: string }) => detail.code),
+    payload.reasonCodes,
+  );
+  assert.deepEqual(
+    payload.explanation.evaluatedPolicies[0].reasonDetails.map(
+      (detail: { code: string }) => detail.code,
+    ),
+    payload.explanation.evaluatedPolicies[0].reasonCodes,
+  );
+  assert.deepEqual(
+    payload.explanation.sla.reasonDetails.map((detail: { code: string }) => detail.code),
+    payload.explanation.sla.reasonCodes,
+  );
   assert.equal(payload.explanation.assignment.queue, payload.simulatedQueue);
 });
 

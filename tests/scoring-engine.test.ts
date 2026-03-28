@@ -5,6 +5,7 @@ import { AuditEventType, ScoreEntityType, SignalStatus, Temperature } from "@pri
 
 import { attachSignal, ingestSignal } from "@/lib/data/signals";
 import { db } from "@/lib/db";
+import { scoreComponentKeyValues } from "@/lib/contracts/scoring";
 import {
   DEFAULT_SCORING_CONFIG,
   computeAccountScore,
@@ -13,7 +14,9 @@ import {
   clampTotalScore,
   getAccountScoreBreakdown,
   getLeadScoreBreakdown,
+  getScoreHistoryForEntity,
   recomputeAccountScore,
+  scoreReasonCodeValues,
   setLeadManualPriorityBoost,
 } from "@/lib/scoring";
 import type { AccountScoringInput, LeadScoringInput } from "@/lib/scoring/input-builders";
@@ -28,13 +31,138 @@ after(async () => {
   await resetDatabase();
 });
 
+const scoreReasonCodeSet = new Set(scoreReasonCodeValues);
+const scoreComponentOrder = [...scoreComponentKeyValues];
+
 test("threshold mapping and clamping follow the default deterministic rules", () => {
   assert.equal(clampTotalScore(-12), 0);
   assert.equal(clampTotalScore(109), 100);
   assert.equal(deriveTemperature(24, DEFAULT_SCORING_CONFIG.thresholds), Temperature.COLD);
   assert.equal(deriveTemperature(25, DEFAULT_SCORING_CONFIG.thresholds), Temperature.WARM);
+  assert.equal(deriveTemperature(49, DEFAULT_SCORING_CONFIG.thresholds), Temperature.WARM);
   assert.equal(deriveTemperature(50, DEFAULT_SCORING_CONFIG.thresholds), Temperature.HOT);
+  assert.equal(deriveTemperature(74, DEFAULT_SCORING_CONFIG.thresholds), Temperature.HOT);
   assert.equal(deriveTemperature(75, DEFAULT_SCORING_CONFIG.thresholds), Temperature.URGENT);
+});
+
+test("computeAccountScore caps final product-usage contributions deterministically", () => {
+  const now = new Date("2026-03-26T16:00:00.000Z");
+  const input: AccountScoringInput = {
+    segment: "SMB",
+    accountTier: "TIER_3",
+    employeeCount: 120,
+    annualRevenueBand: "$20M-$50M",
+    hasNamedOwner: false,
+    manualPriorityBoost: 0,
+    signalMetrics: {
+      lastSignalAt: null,
+      pricingVisitCount7d: 0,
+      highIntentClusterCount14d: 0,
+      thirdPartyIntentCount30d: 0,
+      websiteVisitCount14d: 0,
+      webinarRegistrationCount30d: 0,
+      formFillCount30d: 0,
+      emailReplyCount30d: 0,
+      meetingBookedCount30d: 0,
+      meetingNoShowCount30d: 0,
+      engagedContactCount30d: 0,
+      productSignupCount30d: 1,
+      teamInviteCount30d: 1,
+      keyActivationCount30d: 1,
+    },
+  };
+
+  const breakdown = computeAccountScore(
+    input,
+    {
+      ...DEFAULT_SCORING_CONFIG,
+      componentCaps: {
+        ...DEFAULT_SCORING_CONFIG.componentCaps,
+        productUsage: 13,
+      },
+    },
+    now,
+  );
+  const productUsage = breakdown.componentBreakdown.find(
+    (component) => component.key === "productUsage",
+  );
+
+  assert.ok(productUsage);
+  assert.equal(productUsage.score, 13);
+  assert.deepEqual(
+    productUsage.contributors.map((contributor) => [contributor.reasonCode, contributor.points]),
+    [
+      ["product_usage_signup", 6],
+      ["product_usage_team_invite", 4],
+      ["product_usage_key_activation", 3],
+    ],
+  );
+});
+
+test("computeLeadScore caps final fit contributions deterministically", () => {
+  const now = new Date("2026-03-26T16:00:00.000Z");
+  const input: LeadScoringInput = {
+    accountFitScore: 20,
+    seniority: "VP, Revenue Operations",
+    personaType: "RevOps",
+    manualPriorityBoost: 0,
+    directSignalMetrics: {
+      lastSignalAt: null,
+      pricingVisitCount7d: 0,
+      highIntentClusterCount14d: 0,
+      thirdPartyIntentCount30d: 0,
+      websiteVisitCount14d: 0,
+      webinarRegistrationCount30d: 0,
+      formFillCount30d: 0,
+      emailReplyCount30d: 0,
+      meetingBookedCount30d: 0,
+      meetingNoShowCount30d: 0,
+      engagedContactCount30d: 0,
+      productSignupCount30d: 0,
+      teamInviteCount30d: 0,
+      keyActivationCount30d: 0,
+    },
+    inheritedSignalMetrics: {
+      lastSignalAt: null,
+      pricingVisitCount7d: 0,
+      highIntentClusterCount14d: 0,
+      thirdPartyIntentCount30d: 0,
+      websiteVisitCount14d: 0,
+      webinarRegistrationCount30d: 0,
+      formFillCount30d: 0,
+      emailReplyCount30d: 0,
+      meetingBookedCount30d: 0,
+      meetingNoShowCount30d: 0,
+      engagedContactCount30d: 0,
+      productSignupCount30d: 0,
+      teamInviteCount30d: 0,
+      keyActivationCount30d: 0,
+    },
+  };
+
+  const breakdown = computeLeadScore(
+    input,
+    {
+      ...DEFAULT_SCORING_CONFIG,
+      componentCaps: {
+        ...DEFAULT_SCORING_CONFIG.componentCaps,
+        fit: 18,
+      },
+    },
+    now,
+  );
+  const fit = breakdown.componentBreakdown.find((component) => component.key === "fit");
+
+  assert.ok(fit);
+  assert.equal(fit.score, 18);
+  assert.deepEqual(
+    fit.contributors.map((contributor) => [contributor.reasonCode, contributor.points]),
+    [
+      ["fit_account_inheritance", 12],
+      ["fit_seniority_vp", 4],
+      ["fit_persona_ops", 2],
+    ],
+  );
 });
 
 test("computeAccountScore applies pricing, product usage, engagement, and manual priority deterministically", () => {
@@ -143,7 +271,67 @@ test("computeLeadScore halves inherited account-only signal impact", () => {
   assert.equal(breakdown.temperature, Temperature.WARM);
 });
 
-test("matched signal ingest recomputes account and related lead snapshots", async () => {
+test("score reason details are stable, ordered, and display-ready", () => {
+  const now = new Date("2026-03-26T16:00:00.000Z");
+  const breakdown = computeAccountScore(
+    {
+      segment: "STRATEGIC",
+      accountTier: "STRATEGIC",
+      employeeCount: 4200,
+      annualRevenueBand: "$500M+",
+      hasNamedOwner: true,
+      manualPriorityBoost: 5,
+      signalMetrics: {
+        lastSignalAt: new Date("2026-03-26T15:00:00.000Z"),
+        pricingVisitCount7d: 3,
+        highIntentClusterCount14d: 1,
+        thirdPartyIntentCount30d: 1,
+        websiteVisitCount14d: 5,
+        webinarRegistrationCount30d: 1,
+        formFillCount30d: 1,
+        emailReplyCount30d: 1,
+        meetingBookedCount30d: 1,
+        meetingNoShowCount30d: 0,
+        engagedContactCount30d: 2,
+        productSignupCount30d: 1,
+        teamInviteCount30d: 1,
+        keyActivationCount30d: 1,
+      },
+    },
+    DEFAULT_SCORING_CONFIG,
+    now,
+  );
+
+  assert.deepEqual(
+    breakdown.componentBreakdown.map((component) => component.key),
+    scoreComponentOrder,
+  );
+  assert.equal(breakdown.reasonDetails.length, 5);
+  assert.deepEqual(
+    breakdown.reasonDetails.map((detail) => detail.code),
+    [
+      "fit_strategic_segment",
+      "recency_event_within_24h",
+      "intent_pricing_page_cluster",
+      "engagement_form_fill",
+      "engagement_meeting_booked",
+    ],
+  );
+  assert.deepEqual(
+    breakdown.topReasonCodes,
+    breakdown.reasonDetails.map((detail) => detail.code),
+  );
+
+  for (const detail of breakdown.reasonDetails) {
+    assert.ok(scoreReasonCodeSet.has(detail.code));
+    assert.ok(detail.label.length > 0);
+    assert.ok(detail.description.length > 0);
+    assert.ok(detail.componentLabel.length > 0);
+    assert.notEqual(detail.points, 0);
+  }
+});
+
+test("matched signal ingest recomputes account and related lead snapshots with canonical persisted history", async () => {
   const primaryContact = await db.contact.findUniqueOrThrow({
     where: {
       id: "acc_beaconops_contact_01",
@@ -198,6 +386,10 @@ test("matched signal ingest recomputes account and related lead snapshots", asyn
       slaTargetMinutes: true,
     },
   });
+  const [accountHistory, leadHistory] = await Promise.all([
+    getScoreHistoryForEntity(ScoreEntityType.ACCOUNT, "acc_beaconops", { limit: 1 }),
+    getScoreHistoryForEntity(ScoreEntityType.LEAD, "acc_beaconops_lead_01", { limit: 1 }),
+  ]);
 
   assert.ok(afterAccount);
   assert.ok(afterLead);
@@ -208,6 +400,33 @@ test("matched signal ingest recomputes account and related lead snapshots", asyn
   assert.ok(afterRoutingCount > beforeRoutingCount);
   assert.equal(latestRoutingDecision?.triggerSignalId, result.signalId);
   assert.equal(latestRoutingDecision?.slaTargetMinutes, 240);
+  assert.deepEqual(
+    afterAccount.componentBreakdown.map((component) => component.key),
+    scoreComponentOrder,
+  );
+  assert.deepEqual(
+    afterLead.componentBreakdown.map((component) => component.key),
+    scoreComponentOrder,
+  );
+
+  for (const historyRow of [accountHistory.rows[0], leadHistory.rows[0]]) {
+    assert.ok(historyRow);
+    assert.deepEqual(
+      historyRow.componentBreakdown.map((component) => component.key),
+      scoreComponentOrder,
+    );
+    assert.equal(historyRow.reasonCodes.length, new Set(historyRow.reasonCodes).size);
+    assert.ok(historyRow.reasonDetails.length <= 5);
+    assert.equal(historyRow.reasonDetails.length, new Set(historyRow.reasonDetails.map((detail) => detail.code)).size);
+    assert.equal(historyRow.reasonDetails.every((detail) => scoreReasonCodeSet.has(detail.code)), true);
+    assert.equal(
+      historyRow.reasonDetails.every((detail) => historyRow.reasonCodes.includes(detail.code)),
+      true,
+    );
+    assert.equal(historyRow.trigger.signalSummary?.signalId, result.signalId);
+    assert.equal(historyRow.trigger.signalSummary?.eventType, "PRODUCT_USAGE_MILESTONE");
+    assert.ok(historyRow.trigger.signalSummary?.payloadSummary);
+  }
 });
 
 test("manual attachment rescues an unmatched signal and triggers rescoring", async () => {
