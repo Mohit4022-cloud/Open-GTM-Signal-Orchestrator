@@ -154,21 +154,26 @@ test("matched signal ingest recomputes account and related lead snapshots", asyn
   });
   const beforeAccount = await getAccountScoreBreakdown("acc_beaconops");
   const beforeLead = await getLeadScoreBreakdown("acc_beaconops_lead_01");
+  const beforeRoutingCount = await db.routingDecision.count({
+    where: {
+      leadId: "acc_beaconops_lead_01",
+    },
+  });
 
   assert.ok(beforeAccount);
   assert.ok(beforeLead);
 
   const result = await ingestSignal({
-    source_system: "calendar",
-    event_type: "meeting_booked",
+    source_system: "product",
+    event_type: "product_usage_milestone",
     account_domain: "beaconopspartners.com",
     contact_email: primaryContact.email,
     occurred_at: "2026-03-27T17:00:00.000Z",
     received_at: "2026-03-27T17:05:00.000Z",
     payload: {
-      meeting_id: "test_scoring_meeting_1",
-      calendar_event_id: "test_scoring_calendar_1",
-      meeting_type: "discovery_call",
+      workspace_id: "test_scoring_workspace_1",
+      milestone: "connected_crm",
+      user_id: "test_scoring_user_1",
     },
   });
 
@@ -176,6 +181,23 @@ test("matched signal ingest recomputes account and related lead snapshots", asyn
 
   const afterAccount = await getAccountScoreBreakdown("acc_beaconops");
   const afterLead = await getLeadScoreBreakdown("acc_beaconops_lead_01");
+  const afterRoutingCount = await db.routingDecision.count({
+    where: {
+      leadId: "acc_beaconops_lead_01",
+    },
+  });
+  const latestRoutingDecision = await db.routingDecision.findFirst({
+    where: {
+      leadId: "acc_beaconops_lead_01",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      triggerSignalId: true,
+      slaTargetMinutes: true,
+    },
+  });
 
   assert.ok(afterAccount);
   assert.ok(afterLead);
@@ -183,6 +205,9 @@ test("matched signal ingest recomputes account and related lead snapshots", asyn
   assert.ok(afterLead.totalScore >= beforeLead.totalScore);
   assert.notEqual(afterAccount.lastUpdatedAtIso, beforeAccount.lastUpdatedAtIso);
   assert.notEqual(afterLead.lastUpdatedAtIso, beforeLead.lastUpdatedAtIso);
+  assert.ok(afterRoutingCount > beforeRoutingCount);
+  assert.equal(latestRoutingDecision?.triggerSignalId, result.signalId);
+  assert.equal(latestRoutingDecision?.slaTargetMinutes, 240);
 });
 
 test("manual attachment rescues an unmatched signal and triggers rescoring", async () => {
@@ -204,6 +229,11 @@ test("manual attachment rescues an unmatched signal and triggers rescoring", asy
     where: {
       entityType: ScoreEntityType.ACCOUNT,
       entityId: "acc_signalnest",
+    },
+  });
+  const beforeRoutingCount = await db.routingDecision.count({
+    where: {
+      leadId: "acc_signalnest_lead_01",
     },
   });
 
@@ -237,12 +267,34 @@ test("manual attachment rescues an unmatched signal and triggers rescoring", asy
       entityId: unmatched.signalId,
     },
   });
+  const afterRoutingCount = await db.routingDecision.count({
+    where: {
+      leadId: "acc_signalnest_lead_01",
+    },
+  });
+  const latestRoutingDecision = await db.routingDecision.findFirst({
+    where: {
+      leadId: "acc_signalnest_lead_01",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      triggerSignalId: true,
+      slaTargetMinutes: true,
+      assignedOwnerId: true,
+    },
+  });
 
   assert.equal(signal.status, SignalStatus.MATCHED);
   assert.equal(signal.accountId, "acc_signalnest");
   assert.equal(signal.contactId, "acc_signalnest_contact_01");
   assert.ok(afterHistory > beforeHistory);
   assert.ok(attachAudit);
+  assert.ok(afterRoutingCount > beforeRoutingCount);
+  assert.equal(latestRoutingDecision?.triggerSignalId, unmatched.signalId);
+  assert.equal(latestRoutingDecision?.slaTargetMinutes, 1440);
+  assert.equal(latestRoutingDecision?.assignedOwnerId, "usr_owen_price");
 });
 
 test("manual priority overrides update the manual component and write audit history", async () => {

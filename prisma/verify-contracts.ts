@@ -17,6 +17,12 @@ import {
   getLeadScoreBreakdown,
   getScoreHistoryForEntity,
 } from "../lib/scoring";
+import {
+  getRecentRoutingDecisions,
+  getRoutingDecisionById,
+  getRoutingDecisionsForEntity,
+  simulateRouting,
+} from "../lib/routing";
 
 const DASHBOARD_KPI_KEYS = [
   "signalsReceivedToday",
@@ -45,6 +51,7 @@ async function main() {
     ownerAccounts,
     hotBucketAccounts,
     urgentBucketAccounts,
+    recentRoutingDecisions,
   ] = await Promise.all([
     getDashboardSummary(),
     getHotAccounts(),
@@ -56,6 +63,7 @@ async function main() {
     getAccounts({ owner: "usr_elena_morales" }),
     getAccounts({ scoreBucket: "hot" }),
     getAccounts({ scoreBucket: "urgent" }),
+    getRecentRoutingDecisions(6),
   ]);
 
   invariant(
@@ -259,6 +267,68 @@ async function main() {
   invariant(signalDetail !== null, "Expected signal detail for unmatched signal.");
   invariant(signalDetail.reasonCodes.length > 0, "Signal detail must include reason codes.");
   invariant(signalDetail.auditTrail.length >= 3, "Signal detail must include audit trail entries.");
+
+  invariant(recentRoutingDecisions.length > 0, "Expected recent routing decisions.");
+  invariant(
+    recentRoutingDecisions.every(
+      (decision) =>
+        decision.policyVersion === "routing/v1" &&
+        decision.assignedQueue.length > 0 &&
+        decision.reasonCodes.length > 0 &&
+        decision.explanation.appliedPolicy.policyKey.length > 0 &&
+        decision.explanation.evaluatedPolicies.length > 0 &&
+        decision.explanation.assignment.queue === decision.assignedQueue,
+    ),
+    "Recent routing decisions must expose stable typed routing contracts.",
+  );
+
+  const routingDecisionById = await getRoutingDecisionById(recentRoutingDecisions[0]!.id);
+  invariant(routingDecisionById !== null, "Expected routing decision lookup by ID.");
+  invariant(
+    routingDecisionById.id === recentRoutingDecisions[0]!.id,
+    "Routing decision lookup should return the requested decision.",
+  );
+
+  const beaconOpsRoutingHistory = await getRoutingDecisionsForEntity("lead", "acc_beaconops_lead_01");
+  invariant(beaconOpsRoutingHistory.length === 1, "Expected one persisted routing decision for the seeded BeaconOps lead.");
+  invariant(
+    beaconOpsRoutingHistory[0]!.explanation.capacity.fallbackTriggered,
+    "BeaconOps routing history should expose capacity fallback metadata.",
+  );
+  invariant(
+    beaconOpsRoutingHistory[0]!.reasonCodes.includes("fallback_after_capacity"),
+    "BeaconOps routing history should expose fallback reason codes.",
+  );
+
+  const simulatedRouting = await simulateRouting({
+    accountDomain: "beaconopspartners.com",
+    geography: "NA_WEST",
+    segment: "SMB",
+    accountTier: "TIER_3",
+    namedAccount: true,
+    namedOwnerId: "usr_miles_turner",
+    existingOwnerId: "usr_owen_price",
+    leadSource: "Pricing page revisit",
+    inboundType: "Inbound",
+    temperature: Temperature.HOT,
+    capacityScenario: "named_owner_overloaded",
+  });
+  invariant(
+    simulatedRouting.decisionType === "existing_account_owner",
+    "Routing simulation should fall back from the named owner to the existing owner when capacity is overloaded.",
+  );
+  invariant(
+    simulatedRouting.simulatedOwner?.id === "usr_owen_price",
+    "Routing simulation should select Owen Price.",
+  );
+  invariant(
+    simulatedRouting.reasonCodes.includes("fallback_after_capacity"),
+    "Routing simulation should expose fallback_after_capacity.",
+  );
+  invariant(
+    simulatedRouting.explanation.assignment.queue.length > 0,
+    "Routing simulation should expose a structured assignment queue.",
+  );
 
   const missingAccount = await getAccountById("acc_missing");
   invariant(missingAccount === null, "Expected null for a missing account lookup.");

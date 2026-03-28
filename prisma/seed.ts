@@ -7,8 +7,6 @@ import {
   LifecycleStage,
   Prisma,
   PrismaClient,
-  RoutingDecisionType,
-  RoutingEntityType,
   Segment,
   SignalType,
   TaskPriority,
@@ -21,6 +19,7 @@ import type { IngestSignalInput } from "../lib/contracts/signals";
 import { ingestSignal } from "../lib/data/signals";
 import { db } from "../lib/db";
 import { sqliteAdapter } from "../lib/prisma-adapter";
+import { routeLead } from "../lib/routing";
 import {
   recomputeAccountScore,
   recomputeLeadScore,
@@ -55,6 +54,7 @@ type AccountBlueprint = {
   employeeCount: number;
   annualRevenueBand: string;
   namedOwnerId: string | null;
+  ownerId?: string | null;
   lifecycleStage: LifecycleStage;
   fitScore: number;
   overallScore: number;
@@ -116,6 +116,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.NA_EAST,
     title: "SDR Manager",
     avatarColor: "#0f766e",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 8,
+    maxOpenTasks: 12,
   },
   {
     id: "usr_dante_kim",
@@ -126,6 +129,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.NA_WEST,
     title: "Mid-Market AE",
     avatarColor: "#b66a1d",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 8,
+    maxOpenTasks: 12,
   },
   {
     id: "usr_priya_singh",
@@ -136,6 +142,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.EMEA,
     title: "RevOps Lead",
     avatarColor: "#0f172a",
+    maxOpenHotLeads: 99,
+    maxDailyInboundAssignments: 99,
+    maxOpenTasks: 99,
   },
   {
     id: "usr_elena_morales",
@@ -146,6 +155,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.NA_EAST,
     title: "Strategic Account Executive",
     avatarColor: "#7c3aed",
+    maxOpenHotLeads: 10,
+    maxDailyInboundAssignments: 10,
+    maxOpenTasks: 14,
   },
   {
     id: "usr_miles_turner",
@@ -156,6 +168,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.NA_WEST,
     title: "Senior SDR",
     avatarColor: "#1d4ed8",
+    maxOpenHotLeads: 1,
+    maxDailyInboundAssignments: 0,
+    maxOpenTasks: 6,
   },
   {
     id: "usr_noor_haddad",
@@ -166,6 +181,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.EMEA,
     title: "Enterprise SDR",
     avatarColor: "#2563eb",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 6,
+    maxOpenTasks: 10,
   },
   {
     id: "usr_tessa_liu",
@@ -176,6 +194,9 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.APAC,
     title: "Growth Operations Manager",
     avatarColor: "#059669",
+    maxOpenHotLeads: 4,
+    maxDailyInboundAssignments: 4,
+    maxOpenTasks: 8,
   },
   {
     id: "usr_hana_cho",
@@ -186,6 +207,61 @@ const userSeed: Prisma.UserCreateManyInput[] = [
     geography: Geography.APAC,
     title: "Enterprise Account Executive",
     avatarColor: "#c2410c",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 6,
+    maxOpenTasks: 10,
+  },
+  {
+    id: "usr_sarah_kim",
+    name: "Sarah Kim",
+    email: "sarah.kim@gtmso.local",
+    role: "SDR",
+    team: "NA East Mid-Market",
+    geography: Geography.NA_EAST,
+    title: "Mid-Market SDR",
+    avatarColor: "#7c2d12",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 8,
+    maxOpenTasks: 10,
+  },
+  {
+    id: "usr_owen_price",
+    name: "Owen Price",
+    email: "owen.price@gtmso.local",
+    role: "SDR",
+    team: "NA West Mid-Market",
+    geography: Geography.NA_WEST,
+    title: "Mid-Market SDR",
+    avatarColor: "#0369a1",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 8,
+    maxOpenTasks: 10,
+  },
+  {
+    id: "usr_luca_rossi",
+    name: "Luca Rossi",
+    email: "luca.rossi@gtmso.local",
+    role: "SDR",
+    team: "EMEA Commercial",
+    geography: Geography.EMEA,
+    title: "Commercial SDR",
+    avatarColor: "#0f766e",
+    maxOpenHotLeads: 6,
+    maxDailyInboundAssignments: 8,
+    maxOpenTasks: 10,
+  },
+  {
+    id: "usr_ivy_ng",
+    name: "Ivy Ng",
+    email: "ivy.ng@gtmso.local",
+    role: "SDR",
+    team: "APAC Commercial",
+    geography: Geography.APAC,
+    title: "Commercial SDR",
+    avatarColor: "#be123c",
+    maxOpenHotLeads: 1,
+    maxDailyInboundAssignments: 0,
+    maxOpenTasks: 5,
   },
 ];
 
@@ -200,6 +276,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 420,
     annualRevenueBand: "$50M-$100M",
     namedOwnerId: "usr_dante_kim",
+    ownerId: "usr_owen_price",
     lifecycleStage: LifecycleStage.SALES_READY,
     fitScore: 29,
     overallScore: 88,
@@ -245,6 +322,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 180,
     annualRevenueBand: "$20M-$50M",
     namedOwnerId: null,
+    ownerId: null,
     lifecycleStage: LifecycleStage.PROSPECT,
     fitScore: 20,
     overallScore: 59,
@@ -320,6 +398,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 240,
     annualRevenueBand: "$20M-$50M",
     namedOwnerId: null,
+    ownerId: null,
     lifecycleStage: LifecycleStage.NURTURE,
     fitScore: 19,
     overallScore: 57,
@@ -364,7 +443,8 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     geography: Geography.NA_WEST,
     employeeCount: 5200,
     annualRevenueBand: "$500M+",
-    namedOwnerId: "usr_elena_morales",
+    namedOwnerId: null,
+    ownerId: null,
     lifecycleStage: LifecycleStage.SALES_READY,
     fitScore: 31,
     overallScore: 94,
@@ -380,6 +460,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 220,
     annualRevenueBand: "$20M-$50M",
     namedOwnerId: null,
+    ownerId: "usr_owen_price",
     lifecycleStage: LifecycleStage.PROSPECT,
     fitScore: 22,
     overallScore: 64,
@@ -409,7 +490,8 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     geography: Geography.APAC,
     employeeCount: 680,
     annualRevenueBand: "$50M-$100M",
-    namedOwnerId: "usr_hana_cho",
+    namedOwnerId: null,
+    ownerId: null,
     lifecycleStage: LifecycleStage.ENGAGED,
     fitScore: 22,
     overallScore: 67,
@@ -440,6 +522,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 720,
     annualRevenueBand: "$50M-$100M",
     namedOwnerId: null,
+    ownerId: "usr_sarah_kim",
     lifecycleStage: LifecycleStage.ENGAGED,
     fitScore: 25,
     overallScore: 71,
@@ -470,6 +553,7 @@ const accountBlueprints: readonly AccountBlueprint[] = [
     employeeCount: 260,
     annualRevenueBand: "$20M-$50M",
     namedOwnerId: "usr_miles_turner",
+    ownerId: "usr_owen_price",
     lifecycleStage: LifecycleStage.NURTURE,
     fitScore: 21,
     overallScore: 61,
@@ -622,13 +706,13 @@ function getSlaHours(temperature: Temperature) {
 function getFallbackLeadOwner(geography: Geography) {
   switch (geography) {
     case Geography.NA_WEST:
-      return "usr_miles_turner";
+      return "usr_owen_price";
     case Geography.NA_EAST:
-      return "usr_amelia_ross";
+      return "usr_sarah_kim";
     case Geography.EMEA:
-      return "usr_noor_haddad";
+      return "usr_luca_rossi";
     case Geography.APAC:
-      return "usr_hana_cho";
+      return "usr_ivy_ng";
   }
 }
 
@@ -1417,6 +1501,7 @@ async function main() {
 
   const accounts: SeededAccount[] = accountBlueprints.map((blueprint, index) => ({
     ...blueprint,
+    ownerId: blueprint.ownerId ?? blueprint.namedOwnerId ?? null,
     accountTier: getAccountTier(blueprint.segment),
     createdAt: subDays(baseDate, 90 - index * 2),
     updatedAt: subDays(baseDate, index % 4),
@@ -1492,20 +1577,242 @@ async function main() {
       {
         id: "rule_routing_2026_03",
         ruleType: "routing",
-        version: "2026.03",
+        version: "routing/v1",
         isActive: true,
         configJson: {
+          version: "routing/v1",
           precedence: [
-            "named-account",
-            "territory-segment",
-            "round-robin",
-            "strategic-escalation",
-            "ops-review",
+            "named_account_owner",
+            "existing_account_owner",
+            "strategic_tier_override",
+            "territory_segment_rule",
+            "round_robin_pool",
+            "ops_review_queue",
           ],
-          queues: {
-            urgent: "exec-priority",
-            high: "hot-inbound",
-            default: "signal-followup",
+          territorySegmentRules: [
+            {
+              key: "na-west-mid-market",
+              geography: Geography.NA_WEST,
+              segment: Segment.MID_MARKET,
+              team: "NA West Mid-Market",
+              queue: "na-west-midmarket",
+              poolKey: "pool-na-west-commercial",
+              inboundTypes: [],
+              sdrPod: "NA-West",
+            },
+            {
+              key: "na-west-enterprise",
+              geography: Geography.NA_WEST,
+              segment: Segment.ENTERPRISE,
+              team: "NA West Enterprise",
+              queue: "na-west-enterprise",
+              poolKey: "pool-na-west-enterprise",
+              inboundTypes: [],
+              sdrPod: "NA-West",
+            },
+            {
+              key: "na-west-smb",
+              geography: Geography.NA_WEST,
+              segment: Segment.SMB,
+              team: "NA West Commercial",
+              queue: "na-west-smb",
+              poolKey: "pool-na-west-commercial",
+              inboundTypes: [],
+              sdrPod: "NA-West",
+            },
+            {
+              key: "na-east-mid-market",
+              geography: Geography.NA_EAST,
+              segment: Segment.MID_MARKET,
+              team: "NA East Mid-Market",
+              queue: "na-east-midmarket",
+              poolKey: "pool-na-east-commercial",
+              inboundTypes: [],
+              sdrPod: "NA-East",
+            },
+            {
+              key: "na-east-enterprise",
+              geography: Geography.NA_EAST,
+              segment: Segment.ENTERPRISE,
+              team: "NA East Enterprise",
+              queue: "na-east-enterprise",
+              poolKey: "pool-na-east-enterprise",
+              inboundTypes: [],
+              sdrPod: "NA-East",
+            },
+            {
+              key: "emea-mid-market",
+              geography: Geography.EMEA,
+              segment: Segment.MID_MARKET,
+              team: "EMEA Commercial",
+              queue: "emea-midmarket",
+              poolKey: "pool-emea-commercial",
+              inboundTypes: [],
+              sdrPod: "EMEA",
+            },
+            {
+              key: "emea-enterprise",
+              geography: Geography.EMEA,
+              segment: Segment.ENTERPRISE,
+              team: "EMEA Enterprise",
+              queue: "emea-enterprise",
+              poolKey: "pool-emea-enterprise",
+              inboundTypes: [],
+              sdrPod: "EMEA",
+            },
+            {
+              key: "apac-smb",
+              geography: Geography.APAC,
+              segment: Segment.SMB,
+              team: "APAC Commercial",
+              queue: "apac-smb",
+              poolKey: "pool-apac-commercial",
+              inboundTypes: [],
+              sdrPod: "APAC",
+            },
+            {
+              key: "apac-enterprise",
+              geography: Geography.APAC,
+              segment: Segment.ENTERPRISE,
+              team: "APAC Enterprise",
+              queue: "apac-enterprise",
+              poolKey: "pool-apac-enterprise",
+              inboundTypes: [],
+              sdrPod: "APAC",
+            },
+          ],
+          roundRobinPools: [
+            {
+              key: "pool-na-west-commercial",
+              geography: Geography.NA_WEST,
+              team: "NA West Mid-Market",
+              queue: "na-west-midmarket",
+              members: ["usr_owen_price", "usr_miles_turner"],
+              backupPoolKey: "pool-na-west-fallback",
+              sdrPod: "NA-West",
+            },
+            {
+              key: "pool-na-west-enterprise",
+              geography: Geography.NA_WEST,
+              team: "NA West Enterprise",
+              queue: "na-west-enterprise",
+              members: ["usr_dante_kim"],
+              backupPoolKey: "pool-na-west-fallback",
+              sdrPod: "NA-West",
+            },
+            {
+              key: "pool-na-east-commercial",
+              geography: Geography.NA_EAST,
+              team: "NA East Mid-Market",
+              queue: "na-east-midmarket",
+              members: ["usr_sarah_kim", "usr_amelia_ross"],
+              backupPoolKey: "pool-na-east-fallback",
+              sdrPod: "NA-East",
+            },
+            {
+              key: "pool-na-east-enterprise",
+              geography: Geography.NA_EAST,
+              team: "NA East Enterprise",
+              queue: "na-east-enterprise",
+              members: ["usr_amelia_ross", "usr_elena_morales"],
+              backupPoolKey: "pool-na-east-fallback",
+              sdrPod: "NA-East",
+            },
+            {
+              key: "pool-emea-commercial",
+              geography: Geography.EMEA,
+              team: "EMEA Commercial",
+              queue: "emea-midmarket",
+              members: ["usr_luca_rossi", "usr_noor_haddad"],
+              backupPoolKey: "pool-emea-fallback",
+              sdrPod: "EMEA",
+            },
+            {
+              key: "pool-emea-enterprise",
+              geography: Geography.EMEA,
+              team: "EMEA Enterprise",
+              queue: "emea-enterprise",
+              members: ["usr_noor_haddad", "usr_luca_rossi"],
+              backupPoolKey: "pool-emea-fallback",
+              sdrPod: "EMEA",
+            },
+            {
+              key: "pool-apac-commercial",
+              geography: Geography.APAC,
+              team: "APAC Commercial",
+              queue: "apac-smb",
+              members: ["usr_ivy_ng", "usr_tessa_liu"],
+              backupPoolKey: "pool-apac-fallback",
+              sdrPod: "APAC",
+            },
+            {
+              key: "pool-apac-enterprise",
+              geography: Geography.APAC,
+              team: "APAC Enterprise",
+              queue: "apac-enterprise",
+              members: ["usr_hana_cho"],
+              backupPoolKey: "pool-apac-fallback",
+              sdrPod: "APAC",
+            },
+            {
+              key: "pool-na-west-fallback",
+              geography: Geography.NA_WEST,
+              team: "NA West Review",
+              queue: "na-west-review",
+              members: ["usr_owen_price", "usr_miles_turner"],
+              sdrPod: "NA-West",
+            },
+            {
+              key: "pool-na-east-fallback",
+              geography: Geography.NA_EAST,
+              team: "NA East Review",
+              queue: "na-east-review",
+              members: ["usr_sarah_kim", "usr_amelia_ross"],
+              sdrPod: "NA-East",
+            },
+            {
+              key: "pool-emea-fallback",
+              geography: Geography.EMEA,
+              team: "EMEA Review",
+              queue: "emea-review",
+              members: ["usr_luca_rossi", "usr_noor_haddad"],
+              sdrPod: "EMEA",
+            },
+            {
+              key: "pool-apac-fallback",
+              geography: Geography.APAC,
+              team: "APAC Review",
+              queue: "apac-review",
+              members: ["usr_ivy_ng"],
+              sdrPod: "APAC",
+            },
+          ],
+          fallbackPoolKeys: {
+            [Geography.NA_WEST]: "pool-na-west-fallback",
+            [Geography.NA_EAST]: "pool-na-east-fallback",
+            [Geography.EMEA]: "pool-emea-fallback",
+            [Geography.APAC]: "pool-apac-fallback",
+          },
+          strategicOverrides: [
+            {
+              key: "strategic-global-pair",
+              accountTier: AccountTier.STRATEGIC,
+              team: "Strategic Accounts",
+              queue: "strategic-accounts",
+              primaryOwnerId: "usr_elena_morales",
+              secondaryOwnerId: "usr_sarah_kim",
+              escalationPolicyKey: "strategic-ae-sdr-pair",
+            },
+          ],
+          opsReview: {
+            team: "Revenue Operations",
+            queue: "ops-review",
+          },
+          slaPolicy: {
+            hotInboundLeadMinutes: 15,
+            warmInboundLeadMinutes: 120,
+            productQualifiedMinutes: 240,
+            generalFormFillMinutes: 1440,
           },
         },
       },
@@ -1669,6 +1976,41 @@ async function main() {
     });
   }
 
+  await prisma.routingDecision.deleteMany();
+  await prisma.auditLog.deleteMany({
+    where: {
+      eventType: {
+        in: [
+          AuditEventType.ROUTE_ASSIGNED,
+          AuditEventType.ROUTING_FALLBACK_CAPACITY,
+          AuditEventType.ROUTING_SENT_TO_OPS_REVIEW,
+        ],
+      },
+    },
+  });
+  await prisma.$transaction(
+    leads.map((lead) =>
+      prisma.lead.update({
+        where: { id: lead.id },
+        data: {
+          currentOwnerId: lead.currentOwnerId,
+          routedAt: lead.routedAt,
+          slaDeadlineAt: lead.slaDeadlineAt,
+        },
+      }),
+    ),
+  );
+
+  for (const [index, lead] of leads.entries()) {
+    const decision = await routeLead(lead.id, {
+      effectiveAt: addMinutes(scoreAsOf, index),
+    });
+
+    if (!decision) {
+      throw new Error(`Routing did not return a decision for lead ${lead.id}.`);
+    }
+  }
+
   const refreshedAccounts = await prisma.account.findMany({
     orderBy: {
       createdAt: "asc",
@@ -1680,62 +2022,6 @@ async function main() {
     },
   });
   const accountById = new Map(refreshedAccounts.map((account) => [account.id, account]));
-
-  const routingDecisions = refreshedLeads.map((lead) => {
-    const account = accountById.get(lead.accountId)!;
-    const decisionType =
-      account.segment === Segment.STRATEGIC
-        ? RoutingDecisionType.STRATEGIC_TIER_OVERRIDE
-        : account.namedOwnerId
-          ? RoutingDecisionType.NAMED_ACCOUNT_OWNER
-          : lead.temperature === Temperature.COLD
-            ? RoutingDecisionType.ROUND_ROBIN_POOL
-            : RoutingDecisionType.TERRITORY_SEGMENT_RULE;
-
-    const explanation =
-      decisionType === RoutingDecisionType.STRATEGIC_TIER_OVERRIDE
-        ? "Strategic account routed to paired executive coverage after strong buying signals."
-        : decisionType === RoutingDecisionType.NAMED_ACCOUNT_OWNER
-          ? "Existing named owner retained to keep account context and multithread continuity."
-          : decisionType === RoutingDecisionType.TERRITORY_SEGMENT_RULE
-            ? "Lead assigned by geography and segment coverage policy."
-            : "Lead distributed through the fallback rotation because the account has no named owner.";
-
-    return {
-      id: `${lead.id}_route`,
-      entityType: RoutingEntityType.LEAD,
-      entityId: lead.id,
-      leadId: lead.id,
-      accountId: lead.accountId,
-      policyVersion: "routing-2026.03",
-      decisionType,
-      assignedOwnerId: lead.currentOwnerId,
-      assignedTeam:
-        account.geography === Geography.NA_WEST
-          ? "NA West"
-          : account.geography === Geography.NA_EAST
-            ? "NA East"
-            : account.geography === Geography.EMEA
-              ? "EMEA"
-              : "APAC",
-      assignedQueue:
-        lead.temperature === Temperature.URGENT
-          ? "exec-priority"
-          : lead.temperature === Temperature.HOT
-            ? "hot-inbound"
-            : lead.temperature === Temperature.WARM
-              ? "signal-followup"
-              : "nurture-review",
-      explanationJson: {
-        summary: explanation,
-        drivers: [account.segment, account.geography, lead.temperature],
-        cautions: [],
-      },
-      createdAt: lead.routedAt ?? lead.createdAt,
-    };
-  });
-
-  await prisma.routingDecision.createMany({ data: routingDecisions });
 
   const tasks = [
     ...refreshedLeads.map((lead, index) => {
@@ -1779,7 +2065,8 @@ async function main() {
     }),
     ...accountTaskAccountIds.map((accountId, index) => {
       const account = accountById.get(accountId)!;
-      const ownerId = account.namedOwnerId ?? getFallbackLeadOwner(account.geography);
+      const ownerId =
+        account.ownerId ?? account.namedOwnerId ?? getFallbackLeadOwner(account.geography);
       const isHotAccount = account.status === AccountStatus.HOT;
 
       return {
@@ -1806,40 +2093,6 @@ async function main() {
   ];
 
   await prisma.task.createMany({ data: tasks });
-  const routeAuditLogs = refreshedAccounts.map((account, index) => {
-    const primaryLead = refreshedLeads.find(
-      (lead) => lead.accountId === account.id && lead.id.endsWith("_lead_01"),
-    )!;
-
-    return {
-      id: `${account.id}_audit_route`,
-      eventType: AuditEventType.ROUTE_ASSIGNED,
-      actorType: "system",
-      actorName: "Routing Engine",
-      entityType: "lead",
-      entityId: primaryLead.id,
-      accountId: account.id,
-      leadId: primaryLead.id,
-      beforeState: { queue: "pending" },
-      afterState: {
-        queue:
-          primaryLead.temperature === Temperature.URGENT
-            ? "exec-priority"
-            : primaryLead.temperature === Temperature.HOT
-              ? "hot-inbound"
-              : primaryLead.temperature === Temperature.WARM
-                ? "signal-followup"
-                : "nurture-review",
-      },
-      explanation:
-        index % 2 === 0
-          ? "Lead moved into the active follow-up queue based on owner coverage and current urgency."
-          : "Routing policy preserved account context and assigned the working owner without manual intervention.",
-      createdAt: addMinutes(scoreAsOf, 10 + index),
-    };
-  });
-
-  await prisma.auditLog.createMany({ data: routeAuditLogs });
 
   console.log(
     `Seeded GTM Signal Orchestrator demo data: ${userSeed.length} users, ${accounts.length} accounts, ${contacts.length} contacts, ${refreshedLeads.length} leads, ${seededSignalInputs.length} signal events, and ${tasks.length} tasks.`,
