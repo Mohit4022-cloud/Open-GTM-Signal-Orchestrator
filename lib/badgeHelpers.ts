@@ -1,3 +1,5 @@
+import type { RoutingDecisionType, RoutingReasonCategory } from "@/lib/contracts/routing";
+
 type BadgeTone = "neutral" | "accent" | "positive" | "warning" | "danger";
 
 // Signal status string → Badge tone
@@ -75,6 +77,42 @@ export function getTaskPriorityTone(priority: string): BadgeTone {
       return "accent";
     case "Low":
       return "neutral";
+    default:
+      return "neutral";
+  }
+}
+
+export function getDecisionTypeTone(decisionType: RoutingDecisionType): BadgeTone {
+  switch (decisionType) {
+    case "named_account_owner":
+      return "positive";
+    case "existing_account_owner":
+      return "positive";
+    case "strategic_tier_override":
+      return "accent";
+    case "territory_segment_rule":
+      return "accent";
+    case "round_robin_pool":
+      return "neutral";
+    case "ops_review_queue":
+      return "warning";
+    default:
+      return "neutral";
+  }
+}
+
+export function getReasonCategoryTone(category: RoutingReasonCategory): BadgeTone {
+  switch (category) {
+    case "match":
+      return "positive";
+    case "capacity":
+      return "accent";
+    case "fallback":
+      return "warning";
+    case "sla":
+      return "neutral";
+    case "outcome":
+      return "danger";
     default:
       return "neutral";
   }

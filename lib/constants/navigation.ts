@@ -58,7 +58,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/routing-simulator",
     label: "Routing Simulator",
     description: "Policy simulation workspace",
-    implemented: false,
+    implemented: true,
     icon: Route,
   },
   {
