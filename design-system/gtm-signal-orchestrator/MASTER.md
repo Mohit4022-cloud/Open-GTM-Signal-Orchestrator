@@ -7,8 +7,8 @@
 ---
 
 **Project:** GTM Signal Orchestrator
-**Generated:** 2026-03-26 22:27:54
-**Category:** Analytics Dashboard
+**Generated:** 2026-03-28 00:45:53
+**Category:** Micro SaaS
 
 ---
 
@@ -18,13 +18,13 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#1E40AF` | `--color-primary` |
-| Secondary | `#3B82F6` | `--color-secondary` |
-| CTA/Accent | `#F59E0B` | `--color-cta` |
-| Background | `#F8FAFC` | `--color-background` |
-| Text | `#1E3A8A` | `--color-text` |
+| Primary | `#6366F1` | `--color-primary` |
+| Secondary | `#818CF8` | `--color-secondary` |
+| CTA/Accent | `#10B981` | `--color-cta` |
+| Background | `#F5F3FF` | `--color-background` |
+| Text | `#1E1B4B` | `--color-text` |
 
-**Color Notes:** Blue data + amber highlights
+**Color Notes:** Indigo primary + emerald CTA
 
 ### Typography
 
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #F59E0B;
+  background: #10B981;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #1E40AF;
-  border: 2px solid #1E40AF;
+  color: #6366F1;
+  border: 2px solid #6366F1;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #F8FAFC;
+  background: #F5F3FF;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #1E40AF;
+  border-color: #6366F1;
   outline: none;
-  box-shadow: 0 0 0 3px #1E40AF20;
+  box-shadow: 0 0 0 3px #6366F120;
 }
 ```
 
@@ -153,28 +153,27 @@
 
 ## Style Guidelines
 
-**Style:** Data-Dense Dashboard
+**Style:** Flat Design
 
-**Keywords:** Multiple charts/widgets, data tables, KPI cards, minimal padding, grid layout, space-efficient, maximum data visibility
+**Keywords:** 2D, minimalist, bold colors, no shadows, clean lines, simple shapes, typography-focused, modern, icon-heavy
 
-**Best For:** Business intelligence dashboards, financial analytics, enterprise reporting, operational dashboards, data warehousing
+**Best For:** Web apps, mobile apps, cross-platform, startup MVPs, user-friendly, SaaS, dashboards, corporate
 
-**Key Effects:** Hover tooltips, chart zoom on click, row highlighting on hover, smooth filter animations, data loading spinners
+**Key Effects:** No gradients/shadows, simple hover (color/opacity shift), fast loading, clean transitions (150-200ms ease), minimal icons
 
 ### Page Pattern
 
-**Pattern Name:** Minimal Single Column
+**Pattern Name:** Minimal & Direct + Demo
 
-- **Conversion Strategy:** Single CTA focus. Large typography. Lots of whitespace. No nav clutter. Mobile-first.
-- **CTA Placement:** Center, large CTA button
-- **Section Order:** 1. Hero headline, 2. Short description, 3. Benefit bullets (3 max), 4. CTA, 5. Footer
+- **CTA Placement:** Above fold
+- **Section Order:** Hero > Features > CTA
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Ornate design
-- ❌ No filtering
+- ❌ Complex onboarding flow
+- ❌ Cluttered layout
 
 ### Additional Forbidden Patterns
 
