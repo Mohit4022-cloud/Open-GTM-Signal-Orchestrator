@@ -49,7 +49,7 @@ export function buildRoutingExplanation(
     (step) => step.matched && !step.selected && step.reasonCodes.includes("owner_over_capacity"),
   );
 
-  return {
+  const explanation: RoutingExplanationContract = {
     summary: "",
     decision:
       params.assignedOwner === null ? "sent_to_ops_review" : "assigned_to_owner",
@@ -82,6 +82,9 @@ export function buildRoutingExplanation(
     reasonCodes: uniqueRoutingReasonCodes(params.reasonCodes),
     reasonDetails: buildRoutingReasonDetails(uniqueRoutingReasonCodes(params.reasonCodes)),
   };
+
+  explanation.summary = summarizeRoutingExplanation(explanation);
+  return explanation;
 }
 
 function formatDecisionType(decisionType: RoutingDecisionType) {

@@ -108,7 +108,7 @@ function normalizeRoutingReasonCodes(reasonCodes: unknown) {
   return [...new Set(parseRoutingReasonCodes(reasonCodes))];
 }
 
-function buildDecisionReasonCodes(
+export function buildDecisionReasonCodes(
   decisionType: RoutingDecisionType,
   reasonCodes: RoutingReasonCode[],
 ): RoutingReasonCode[] {

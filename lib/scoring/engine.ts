@@ -289,7 +289,7 @@ function computeAccountFitComponent(
   }
 
   if (input.hasNamedOwner) {
-    addPositiveContribution(contributors, remainingCap, "fit_named_account", 2);
+    remainingCap = addPositiveContribution(contributors, remainingCap, "fit_named_account", 2);
   }
 
   return buildComponentBreakdown("fit", config.componentCaps.fit, contributors);
@@ -329,7 +329,12 @@ function computeAccountIntentComponent(input: AccountScoringInput, config: Scori
   }
 
   if (signalMetrics.webinarRegistrationCount30d > 0) {
-    addPositiveContribution(contributors, remainingCap, "intent_webinar_registration", 2);
+    remainingCap = addPositiveContribution(
+      contributors,
+      remainingCap,
+      "intent_webinar_registration",
+      2,
+    );
   }
 
   return buildComponentBreakdown("intent", config.componentCaps.intent, contributors);
@@ -353,7 +358,7 @@ function computeAccountEngagementComponent(input: AccountScoringInput, config: S
   }
 
   if (signalMetrics.engagedContactCount30d >= 2) {
-    addPositiveContribution(
+    remainingCap = addPositiveContribution(
       contributors,
       remainingCap,
       "engagement_multithreaded_contacts",
@@ -383,7 +388,12 @@ function computeAccountProductUsageComponent(input: AccountScoringInput, config:
   }
 
   if (signalMetrics.keyActivationCount30d > 0) {
-    addPositiveContribution(contributors, remainingCap, "product_usage_key_activation", 5);
+    remainingCap = addPositiveContribution(
+      contributors,
+      remainingCap,
+      "product_usage_key_activation",
+      5,
+    );
   }
 
   return buildComponentBreakdown("productUsage", config.componentCaps.productUsage, contributors);
@@ -457,7 +467,12 @@ function computeLeadFitComponent(input: LeadScoringInput, config: ScoringConfigC
     );
   }
 
-  addPositiveContribution(contributors, remainingCap, personaContribution.reasonCode, personaContribution.points);
+  remainingCap = addPositiveContribution(
+    contributors,
+    remainingCap,
+    personaContribution.reasonCode,
+    personaContribution.points,
+  );
 
   return buildComponentBreakdown("fit", config.componentCaps.fit, contributors);
 }
@@ -524,7 +539,12 @@ function computeLeadIntentComponent(input: LeadScoringInput, config: ScoringConf
     2,
   );
   if (webinarPoints > 0) {
-    addPositiveContribution(contributors, remainingCap, "intent_webinar_registration", webinarPoints);
+    remainingCap = addPositiveContribution(
+      contributors,
+      remainingCap,
+      "intent_webinar_registration",
+      webinarPoints,
+    );
   }
 
   return buildComponentBreakdown("intent", config.componentCaps.intent, contributors);
@@ -578,7 +598,7 @@ function computeLeadEngagementComponent(input: LeadScoringInput, config: Scoring
         ? 2
         : 0;
   if (multithreadPoints > 0) {
-    addPositiveContribution(
+    remainingCap = addPositiveContribution(
       contributors,
       remainingCap,
       "engagement_multithreaded_contacts",
@@ -632,7 +652,12 @@ function computeLeadProductUsageComponent(input: LeadScoringInput, config: Scori
     5,
   );
   if (keyActivationPoints > 0) {
-    addPositiveContribution(contributors, remainingCap, "product_usage_key_activation", keyActivationPoints);
+    remainingCap = addPositiveContribution(
+      contributors,
+      remainingCap,
+      "product_usage_key_activation",
+      keyActivationPoints,
+    );
   }
 
   return buildComponentBreakdown("productUsage", config.componentCaps.productUsage, contributors);

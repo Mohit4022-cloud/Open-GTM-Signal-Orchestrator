@@ -29,6 +29,7 @@ import {
   buildRoutingExplanation,
   uniqueRoutingReasonCodes,
 } from "./explanation";
+import { buildDecisionReasonCodes } from "./normalize";
 import { buildRoutingReasonDetails } from "./reason-codes";
 import { resolveRoutingSla } from "./sla";
 
@@ -713,11 +714,15 @@ export async function evaluateRoutingDecision(
     triggerSignal: context.triggerSignal,
     referenceTime: context.referenceTime,
   });
-  const reasonCodes = uniqueRoutingReasonCodes([
+  const rawReasonCodes = uniqueRoutingReasonCodes([
     ...selectedAssignment.reasonCodes,
     ...(fallbackTriggered ? (["fallback_after_capacity"] as const) : []),
     ...sla.reasonCodes,
   ]);
+  const reasonCodes = buildDecisionReasonCodes(
+    selectedAssignment.decisionType,
+    rawReasonCodes,
+  );
 
   const explanation = buildRoutingExplanation({
     decisionType: selectedAssignment.decisionType,

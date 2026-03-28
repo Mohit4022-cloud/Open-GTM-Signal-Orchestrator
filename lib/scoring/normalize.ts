@@ -278,10 +278,10 @@ export function normalizeEntityScoreBreakdown(input: {
     totalScore: input.totalScore,
     temperature: input.temperature,
     componentBreakdown,
-    topReasonCodes: buildScoreReasonCodes(
-      componentBreakdown,
-      input.topReasonCodes,
-    ).slice(0, 5),
+    topReasonCodes:
+      reasonDetails.length > 0
+        ? reasonDetails.map((detail) => detail.code)
+        : buildScoreReasonCodes(componentBreakdown, input.topReasonCodes).slice(0, 5),
     reasonDetails,
     topContributors,
     explanation: normalizeScoreExplanation(input.explanation),
