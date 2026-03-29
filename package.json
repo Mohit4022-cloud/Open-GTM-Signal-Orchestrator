@@ -22,7 +22,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -33,6 +33,7 @@
     "db:seed": "node --import tsx prisma/seed.ts",
     "db:verify-seed": "node --import tsx prisma/verify-seed.ts",
     "db:verify-contracts": "node --import tsx prisma/verify-contracts.ts",
+    "db:verify-actions": "node --import tsx prisma/verify-actions.ts",
     "db:verify-routing": "node --import tsx prisma/verify-routing.ts",
     "db:verify-signal-pipeline": "node --import tsx prisma/verify-signal-pipeline.ts",
     "db:studio": "prisma studio",
@@ -43,6 +44,8 @@
     "seed": "node --import tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "better-sqlite3": "^12.8.0",

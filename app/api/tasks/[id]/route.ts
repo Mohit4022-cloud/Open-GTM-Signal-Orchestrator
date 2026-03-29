@@ -12,7 +12,7 @@ import { parseUpdateTaskRequest } from "@/lib/validation/tasks";
 export const runtime = "nodejs";
 
 type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 };
 
 function getErrorMessage(error: unknown) {
@@ -25,6 +25,12 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Unexpected task error.";
+}
+
+function maybeThrowForcedError(request: Request) {
+  if (process.env.NODE_ENV === "test" && request.headers.get("x-force-error") === "1") {
+    throw new Error("Forced task route failure.");
+  }
 }
 
 function createErrorResponse(
@@ -75,6 +81,7 @@ async function validateTaskOwnership(taskId: string, ownerId: string | null | un
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    maybeThrowForcedError(request);
     const { id } = await context.params;
     const body = await request.json();
     const input = parseUpdateTaskRequest(body);

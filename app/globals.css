@@ -17,6 +17,8 @@
   --warning: #b66a1d;
   --danger: #b42318;
   --shadow-sm: 0 10px 30px rgba(20, 32, 43, 0.06);
+  --font-manrope: "Manrope Variable", "Manrope", sans-serif;
+  --font-plex-mono: "IBM Plex Mono", monospace;
 }
 
 @theme inline {
