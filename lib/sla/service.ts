@@ -206,6 +206,7 @@ export async function assignSlaForLeadWithClient(
       accountId: lead.accountId,
       leadId,
       explanation,
+      reasonCodes: resolvedPolicy.reasonCodes,
       afterState: {
         policyKey: resolvedPolicy.policyKey,
         policyVersion: resolvedPolicy.policyVersion,
@@ -318,6 +319,7 @@ export async function assignSlaForTaskWithClient(
       accountId: task.accountId,
       leadId: task.leadId,
       explanation,
+      reasonCodes: shouldTrack ? ["sla_tracking_enabled"] : [],
       afterState: {
         isSlaTracked: shouldTrack,
         policyKey,
@@ -663,6 +665,7 @@ export async function runSlaBreachChecksWithClient(client: SlaClient, now = new 
       accountId: lead.accountId,
       leadId: lead.id,
       explanation,
+      reasonCodes: ["sla_breached_no_response"],
       beforeState: {
         slaStatus: lead.slaStatus,
         dueAt: lead.slaDeadlineAt?.toISOString() ?? null,
@@ -730,6 +733,7 @@ export async function runSlaBreachChecksWithClient(client: SlaClient, now = new 
       accountId: task.accountId,
       leadId: task.leadId,
       explanation,
+      reasonCodes: ["sla_breached_no_response"],
       beforeState: {
         slaStatus: task.slaStatus,
         dueAt: task.dueAt.toISOString(),
@@ -826,6 +830,7 @@ export async function resolveLeadSlaWithClient(
       accountId: lead.accountId,
       leadId: lead.id,
       explanation,
+      reasonCodes: metSla ? ["sla_met_first_response_on_time"] : ["sla_breached_no_response"],
       beforeState: {
         firstResponseAt: lead.firstResponseAt?.toISOString() ?? null,
         slaStatus: lead.slaBreachedAt ? "BREACHED" : "ON_TRACK",
@@ -925,6 +930,7 @@ export async function resolveTaskSlaWithClient(
       accountId: task.accountId,
       leadId: task.leadId,
       explanation,
+      reasonCodes: metSla ? ["sla_met_first_response_on_time"] : ["sla_breached_no_response"],
       beforeState: {
         completedAt: task.completedAt?.toISOString() ?? null,
         slaStatus: task.slaBreachedAt ? "BREACHED" : "ON_TRACK",

@@ -9,6 +9,21 @@ export type LeadFiltersInput = {
   slaState?: SlaCurrentState | SlaCurrentState[];
   tracked?: boolean;
   overdue?: boolean;
+  hot?: boolean;
+  unassigned?: boolean;
+  recentlyRouted?: boolean;
+};
+
+export type LeadQueueRoutingContract = {
+  currentQueue: string | null;
+  routedAtIso: string | null;
+};
+
+export type LeadQueueFlagsContract = {
+  isHot: boolean;
+  isOverdueSla: boolean;
+  isUnassigned: boolean;
+  isRecentlyRouted: boolean;
 };
 
 export type LeadQueueItemContract = {
@@ -26,6 +41,8 @@ export type LeadQueueItemContract = {
   score: number;
   createdAtIso: string;
   updatedAtIso: string;
+  routing: LeadQueueRoutingContract;
+  queueFlags: LeadQueueFlagsContract;
   sla: LeadSlaSnapshotContract;
 };
 
@@ -37,6 +54,9 @@ export type LeadQueueContract = {
     slaStates: SlaCurrentState[];
     tracked: boolean | null;
     overdue: boolean | null;
+    hot: boolean | null;
+    unassigned: boolean | null;
+    recentlyRouted: boolean | null;
   };
   totalCount: number;
   rows: LeadQueueItemContract[];

@@ -14,6 +14,7 @@ import type {
   ActionReasonCode,
   ActionReasonSummaryContract,
   ActionOwnerSummaryContract,
+  DashboardTaskSummaryContract,
   LinkedEntitySummaryContract,
   TaskFiltersInput,
   TaskPriorityCode,
@@ -529,7 +530,7 @@ export async function getTaskById(id: string) {
   return row ? mapTaskRow(row, now) : null;
 }
 
-export async function getTasks(filters: TaskFiltersInput = {}): Promise<TaskQueueContract> {
+export async function getTaskQueue(filters: TaskFiltersInput = {}): Promise<TaskQueueContract> {
   const where = buildWhere(filters);
   const now = new Date();
   const rows = await db.task.findMany({
@@ -662,8 +663,12 @@ export async function getTasks(filters: TaskFiltersInput = {}): Promise<TaskQueu
   };
 }
 
+export async function getTasks(filters: TaskFiltersInput = {}): Promise<TaskQueueContract> {
+  return getTaskQueue(filters);
+}
+
 export async function getTasksForLead(leadId: string) {
-  const queue = await getTasks({
+  const queue = await getTaskQueue({
     entityType: "lead",
     entityId: leadId,
   });
@@ -672,7 +677,7 @@ export async function getTasksForLead(leadId: string) {
 }
 
 export async function getTasksForAccount(accountId: string) {
-  const queue = await getTasks({
+  const queue = await getTaskQueue({
     entityType: "account",
     entityId: accountId,
   });
@@ -746,5 +751,56 @@ export async function getRecommendationsList(
     entityType,
     entityId,
     rows: await getActionRecommendationsForEntity(entityType, entityId),
+  };
+}
+
+export async function getDashboardTaskSummary(now = new Date()): Promise<DashboardTaskSummaryContract> {
+  const rows = await db.task.findMany({
+    where: {
+      status: {
+        in: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS],
+      },
+    },
+    select: {
+      id: true,
+      ownerId: true,
+      priority: true,
+      status: true,
+      dueAt: true,
+      completedAt: true,
+      isSlaTracked: true,
+      slaPolicyKey: true,
+      slaPolicyVersion: true,
+      slaTargetMinutes: true,
+      slaBreachedAt: true,
+    },
+  });
+
+  const snapshots = rows.map((row) =>
+    mapTaskSlaSnapshot(
+      {
+        isSlaTracked: row.isSlaTracked,
+        slaPolicyKey: row.slaPolicyKey,
+        slaPolicyVersion: row.slaPolicyVersion,
+        slaTargetMinutes: row.slaTargetMinutes,
+        dueAt: row.dueAt,
+        slaBreachedAt: row.slaBreachedAt,
+        completedAt: row.completedAt,
+        status: row.status,
+      },
+      now,
+    ),
+  );
+
+  return {
+    asOfIso: now.toISOString(),
+    openCount: rows.length,
+    inProgressCount: rows.filter((row) => row.status === TaskStatus.IN_PROGRESS).length,
+    overdueCount: rows.filter((row) => row.dueAt.getTime() < now.getTime()).length,
+    urgentCount: rows.filter((row) => row.priority === TaskPriority.URGENT).length,
+    unassignedCount: rows.filter((row) => row.ownerId === null).length,
+    trackedSlaCount: rows.filter((row) => row.isSlaTracked).length,
+    breachedCount: snapshots.filter((item) => item.currentState === "breached").length,
+    dueSoonCount: snapshots.filter((item) => item.currentState === "due_soon").length,
   };
 }

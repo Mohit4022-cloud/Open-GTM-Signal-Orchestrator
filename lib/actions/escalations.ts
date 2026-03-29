@@ -49,6 +49,7 @@ export async function createLeadSlaEscalationTaskWithClient(
       accountId: params.accountId,
       leadId: params.leadId,
       explanation: `Duplicate SLA escalation prevented by dedupe key ${dedupeKey}.`,
+      reasonCodes: ["sla_breach_requires_escalation"],
       afterState: {
         actionType: ActionType.ESCALATE_SLA_BREACH,
         dedupeKey,
@@ -115,6 +116,7 @@ export async function createLeadSlaEscalationTaskWithClient(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation,
+    reasonCodes: ["sla_breach_requires_escalation"],
     afterState: {
       taskType: TaskType.ESCALATION,
       actionType: ActionType.ESCALATE_SLA_BREACH,

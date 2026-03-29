@@ -5,7 +5,7 @@ import type {
   PublicTaskApiErrorCode,
   PublicTaskApiErrorResponseContract,
 } from "@/lib/contracts/actions";
-import { createManualTask, getTaskById, getTasks } from "@/lib/actions";
+import { createManualTask, getTaskById, getTaskQueue } from "@/lib/actions";
 import { db } from "@/lib/db";
 import {
   parseCreateTaskRequest,
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
   try {
     maybeThrowForcedError(request);
     const filters = parseTaskFilters(new URL(request.url).searchParams);
-    const queue = await getTasks(filters);
+    const queue = await getTaskQueue(filters);
     return NextResponse.json(queue, { status: 200 });
   } catch (error) {
     if (error instanceof ZodError) {

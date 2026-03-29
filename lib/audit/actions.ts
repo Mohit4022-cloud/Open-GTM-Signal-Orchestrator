@@ -12,6 +12,9 @@ type ActionAuditPayload = {
   accountId?: string | null;
   leadId?: string | null;
   explanation: string;
+  actorType?: "system" | "user";
+  actorId?: string | null;
+  actorName?: string;
   reasonCodes?: string[];
   beforeState?: Record<string, unknown> | null;
   afterState?: Record<string, unknown> | null;
@@ -25,9 +28,9 @@ async function createActionAuditLog(
     eventType: payload.eventType,
     action: payload.action,
     actor: {
-      type: "system",
-      id: null,
-      name: "Action Engine",
+      type: payload.actorType ?? "system",
+      id: payload.actorId ?? null,
+      name: payload.actorName ?? "Action Engine",
     },
     entity: {
       type: payload.entityType,
@@ -52,6 +55,10 @@ export function recordTaskCreated(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
+    actorType?: "system" | "user";
+    actorId?: string | null;
+    actorName?: string;
   },
 ) {
   return createActionAuditLog(client, {
@@ -62,7 +69,10 @@ export function recordTaskCreated(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    actorType: params.actorType,
+    actorId: params.actorId,
+    actorName: params.actorName,
+    reasonCodes: params.reasonCodes ?? [],
     afterState: {
       ...params.afterState,
       sourceEntityType: params.entityType,
@@ -82,6 +92,10 @@ export function recordTaskUpdated(
     explanation: string;
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
+    actorType?: "system" | "user";
+    actorId?: string | null;
+    actorName?: string;
   },
 ) {
   return createActionAuditLog(client, {
@@ -92,7 +106,10 @@ export function recordTaskUpdated(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    actorType: params.actorType,
+    actorId: params.actorId,
+    actorName: params.actorName,
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: {
       ...params.beforeState,
       sourceEntityType: params.entityType,
@@ -112,6 +129,7 @@ export function recordActionRecommendationCreated(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createActionAuditLog(client, {
@@ -122,7 +140,7 @@ export function recordActionRecommendationCreated(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: {
       ...params.afterState,
       sourceEntityType: params.entityType,
@@ -140,6 +158,7 @@ export function recordDuplicateActionPrevented(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createActionAuditLog(client, {
@@ -150,7 +169,7 @@ export function recordDuplicateActionPrevented(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: params.afterState,
   });
 }
@@ -164,6 +183,7 @@ export function recordActionGenerationSkipped(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createActionAuditLog(client, {
@@ -174,7 +194,7 @@ export function recordActionGenerationSkipped(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: params.afterState,
   });
 }

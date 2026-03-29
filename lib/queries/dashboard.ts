@@ -1,6 +1,7 @@
 import { format, startOfDay, subDays } from "date-fns";
 import { SignalStatus, TaskStatus, Temperature } from "@prisma/client";
 
+import { getDashboardTaskSummary } from "@/lib/actions";
 import type {
   DashboardData,
   DashboardSummaryContract,
@@ -58,7 +59,7 @@ function mapRecentSignal(signal: Awaited<ReturnType<typeof getRecentSignalFeed>>
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
-  const [signals, routingDecisions, tasks, accountCount, hotAccountCount, slaSummary] = await Promise.all([
+  const [signals, routingDecisions, taskSummary, accountCount, hotAccountCount, slaSummary] = await Promise.all([
     db.signalEvent.findMany({
       select: {
         occurredAt: true,
@@ -76,12 +77,7 @@ export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
         }),
       [],
     ),
-    db.task.findMany({
-      select: {
-        dueAt: true,
-        status: true,
-      },
-    }),
+    getDashboardTaskSummary(),
     db.account.count(),
     db.account.count({
       where: {
@@ -115,7 +111,6 @@ export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
     slaSummary.leadMetrics.overdueCount -
     slaSummary.leadMetrics.breachedCount;
   const slaBreached = slaSummary.leadMetrics.breachedCount;
-  const openTasks = tasks.filter((task) => task.status !== TaskStatus.COMPLETED).length;
   const signalsReceivedToday = signals.filter((signal) => signal.receivedAt >= today).length;
   const routedToday = routingDecisions.filter((decision) => decision.createdAt >= today).length;
   const sevenDaySignals = signalVolume14d.slice(-7).reduce((sum, point) => sum + point.signals, 0);
@@ -174,7 +169,7 @@ export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
         label: "Avg. speed-to-lead",
         value: averageResponseMinutes ? `${Math.round(averageResponseMinutes / 60)}h` : "n/a",
         rawValue: averageResponseMinutes,
-        change: `${openTasks} open tasks across active queues`,
+        change: `${taskSummary.openCount} open tasks across active queues`,
         tone: "default",
       },
     ],

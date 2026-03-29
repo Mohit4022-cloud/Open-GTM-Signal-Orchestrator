@@ -146,6 +146,7 @@ async function createTaskFromTemplateWithClient(
         accountId: draft.accountId,
         leadId: draft.leadId,
         explanation: `Duplicate ${draft.actionType} prevented by dedupe key ${draft.dedupeKey}.`,
+        reasonCodes: draft.reasonCodes,
         afterState: {
           actionType: draft.actionType,
           dedupeKey: draft.dedupeKey,
@@ -191,6 +192,7 @@ async function createTaskFromTemplateWithClient(
     accountId: draft.accountId,
     leadId: draft.leadId,
     explanation: draft.explanation.summary,
+    reasonCodes: draft.reasonCodes,
     afterState: {
       taskType: draft.taskType,
       actionType: draft.actionType,
@@ -231,6 +233,7 @@ async function createRecommendationWithClient(
         accountId: draft.accountId,
         leadId: draft.leadId,
         explanation: `Duplicate ${draft.recommendationType} prevented by dedupe key ${draft.dedupeKey}.`,
+        reasonCodes: draft.reasonCodes,
         afterState: {
           recommendationType: draft.recommendationType,
           dedupeKey: draft.dedupeKey,
@@ -274,6 +277,7 @@ async function createRecommendationWithClient(
     accountId: draft.accountId,
     leadId: draft.leadId,
     explanation: draft.explanation.summary,
+    reasonCodes: draft.reasonCodes,
     afterState: {
       recommendationType: draft.recommendationType,
       actionCategory: draft.actionCategory,
@@ -329,6 +333,7 @@ async function runGeneratedOutputs(
       accountId,
       leadId,
       explanation: `Action generation skipped because ${reasonCode}.`,
+      reasonCodes: [reasonCode],
       afterState: {
         skippedReasonCode: reasonCode,
       },
@@ -898,6 +903,10 @@ export async function createManualTask(
       accountId: task.accountId,
       leadId: task.leadId,
       explanation: input.description,
+      actorType: "user",
+      actorId: null,
+      actorName: "Workspace operator",
+      reasonCodes: ["manual_task_created"],
       afterState: {
         actionType: ActionType.MANUAL_CUSTOM,
         actionCategory: ActionCategory.MANUAL,
@@ -986,6 +995,10 @@ export async function updateTask(
       accountId: existing.accountId,
       leadId: existing.leadId,
       explanation: `Task ${taskId} updated.`,
+      actorType: "user",
+      actorId: null,
+      actorName: "Workspace operator",
+      reasonCodes: [],
       beforeState: {
         ownerId: existing.ownerId,
         priority: existing.priority,

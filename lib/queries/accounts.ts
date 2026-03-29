@@ -27,6 +27,7 @@ import {
   formatRelativeTime,
   getScoreBucket,
 } from "@/lib/formatters/display";
+import { getAuditLogForEntity } from "@/lib/audit/queries";
 import { getAccountScoreBreakdown, getScoreHistoryForEntity } from "@/lib/scoring";
 import { mapLeadSlaSnapshot } from "@/lib/sla";
 
@@ -249,7 +250,7 @@ export async function getAccounts(
 
 export async function getAccountById(id: string): Promise<AccountDetailContract | null> {
   const now = new Date();
-  const [account, timeline, score, scoreHistory, openTaskQueue] = await Promise.all([
+  const [account, timeline, score, scoreHistory, openTaskQueue, auditLog] = await Promise.all([
     db.account.findUnique({
       where: { id },
       select: {
@@ -331,28 +332,13 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
             },
           },
         },
-        auditLogs: {
-          take: 8,
-          orderBy: {
-            createdAt: "desc",
-          },
-          select: {
-            id: true,
-            eventType: true,
-            explanation: true,
-            createdAt: true,
-            actorName: true,
-            actorType: true,
-            entityType: true,
-            entityId: true,
-          },
-        },
       },
     }),
     getAccountTimeline(id, { limit: 8 }),
     getAccountScoreBreakdown(id),
     getScoreHistoryForEntity(ScoreEntityType.ACCOUNT, id, { limit: 8 }),
     getTasksForAccount(id),
+    getAuditLogForEntity("account", id, { limit: 8 }),
   ]);
 
   if (!account || !score) {
@@ -498,18 +484,7 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
       value: component.score,
       reasonCode: component.reasonCodes[0] ?? "none",
     })),
-    auditLog: account.auditLogs.map((entry) => ({
-      id: entry.id,
-      eventType: entry.eventType,
-      eventTypeLabel: formatEnumLabel(entry.eventType),
-      explanation: entry.explanation,
-      createdAtIso: entry.createdAt.toISOString(),
-      createdAtLabel: formatRelativeTime(entry.createdAt),
-      actorName: entry.actorName,
-      actorType: entry.actorType,
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-    })),
+    auditLog,
     summary: buildAccountSummary({
       name: account.name,
       overallScore: account.overallScore,
@@ -605,10 +580,10 @@ export async function getAccountDetail(id: string): Promise<AccountDetailView | 
     })),
     auditLog: account.auditLog.map((entry) => ({
       id: entry.id,
-      title: entry.eventTypeLabel,
+      title: entry.action,
       explanation: entry.explanation,
-      createdAt: entry.createdAtLabel,
-      actorName: entry.actorName,
+      createdAt: entry.timestampLabel,
+      actorName: entry.actor.name,
     })),
     summary: account.summary,
   };

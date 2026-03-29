@@ -34,6 +34,9 @@ const leadFiltersSchema = z.object({
   slaState: z.array(z.enum(slaCurrentStateValues)).optional(),
   tracked: z.boolean().optional(),
   overdue: z.boolean().optional(),
+  hot: z.boolean().optional(),
+  unassigned: z.boolean().optional(),
+  recentlyRouted: z.boolean().optional(),
 });
 
 export const updateLeadRequestSchema = z
@@ -67,6 +70,21 @@ export function parseLeadFilters(searchParams: URLSearchParams): LeadFiltersInpu
     })(),
     overdue: (() => {
       const raw = searchParams.get("overdue");
+      const parsed = parseBooleanValue(raw);
+      return typeof parsed === "boolean" ? parsed : parsed === undefined ? undefined : raw;
+    })(),
+    hot: (() => {
+      const raw = searchParams.get("hot");
+      const parsed = parseBooleanValue(raw);
+      return typeof parsed === "boolean" ? parsed : parsed === undefined ? undefined : raw;
+    })(),
+    unassigned: (() => {
+      const raw = searchParams.get("unassigned");
+      const parsed = parseBooleanValue(raw);
+      return typeof parsed === "boolean" ? parsed : parsed === undefined ? undefined : raw;
+    })(),
+    recentlyRouted: (() => {
+      const raw = searchParams.get("recentlyRouted");
       const parsed = parseBooleanValue(raw);
       return typeof parsed === "boolean" ? parsed : parsed === undefined ? undefined : raw;
     })(),

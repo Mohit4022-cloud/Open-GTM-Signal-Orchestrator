@@ -996,6 +996,7 @@ async function persistRoutingDecision(
       leadId: contract.leadId,
       explanation:
         "Routing fell through to a lower-precedence rule because a higher-precedence owner or pool was overloaded.",
+      reasonCodes: contract.reasonCodes,
       beforeState: {
         queue: latestDecision?.assignedQueue ?? null,
         ownerId: latestDecision?.assignedOwnerId ?? null,
@@ -1014,6 +1015,7 @@ async function persistRoutingDecision(
       accountId: contract.accountId,
       leadId: contract.leadId,
       explanation: "Routing sent the entity to the ops review queue.",
+      reasonCodes: contract.reasonCodes,
       afterState: {
         queue: contract.assignedQueue,
         reasonCodes: contract.reasonCodes,
@@ -1027,6 +1029,7 @@ async function persistRoutingDecision(
       leadId: contract.leadId,
       explanation:
         `${contract.assignedOwner.name} assigned to ${contract.assignedQueue} via ${contract.decisionType}.`,
+      reasonCodes: contract.reasonCodes,
       afterState: {
         ownerId: contract.assignedOwner.id,
         secondaryOwnerId: contract.secondaryOwner?.id ?? null,

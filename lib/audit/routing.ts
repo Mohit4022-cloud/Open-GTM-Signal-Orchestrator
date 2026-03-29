@@ -54,6 +54,7 @@ export function recordRoutingDecisionCreated(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createRoutingAuditLog(client, {
@@ -64,7 +65,7 @@ export function recordRoutingDecisionCreated(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: params.afterState,
   });
 }
@@ -79,6 +80,7 @@ export function recordRoutingFallbackCapacity(
     explanation: string;
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createRoutingAuditLog(client, {
@@ -89,7 +91,7 @@ export function recordRoutingFallbackCapacity(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: params.beforeState,
     afterState: params.afterState,
   });
@@ -104,6 +106,7 @@ export function recordRoutingSentToOpsReview(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createRoutingAuditLog(client, {
@@ -114,7 +117,7 @@ export function recordRoutingSentToOpsReview(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: params.afterState,
   });
 }

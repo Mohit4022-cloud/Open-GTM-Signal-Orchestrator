@@ -47,6 +47,7 @@ export type {
   ActionRecommendationContract,
   ActionRecommendationsListContract,
   CreateTaskRequest,
+  DashboardTaskSummaryContract,
   LinkedEntitySummaryContract,
   PublicActionApiErrorCode,
   PublicActionApiErrorResponseContract,

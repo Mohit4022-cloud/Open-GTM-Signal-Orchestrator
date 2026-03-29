@@ -1,6 +1,7 @@
 import type { ActionCategory } from "@prisma/client";
 
 import type { EntityScoreBreakdownContract, ScoreHistoryRowContract } from "@/lib/contracts/scoring";
+import type { AuditLogEntryContract } from "@/lib/contracts/audit";
 import type {
   ActionExplanationContract,
   ActionReasonSummaryContract,
@@ -268,18 +269,7 @@ export type ScoreBreakdownItemContract = {
   reasonCode: string;
 };
 
-export type AuditLogItemContract = {
-  id: string;
-  eventType: string;
-  eventTypeLabel: string;
-  explanation: string;
-  createdAtIso: string;
-  createdAtLabel: string;
-  actorName: string;
-  actorType: string;
-  entityType: string;
-  entityId: string;
-};
+export type AuditLogItemContract = AuditLogEntryContract;
 
 export type AccountDetailContract = {
   metadata: AccountMetadataContract;

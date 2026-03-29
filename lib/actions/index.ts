@@ -10,8 +10,10 @@ export {
 export { createLeadSlaEscalationTaskWithClient } from "./escalations";
 export {
   getActionRecommendationsForEntity,
+  getDashboardTaskSummary,
   getRecommendationsList,
   getTaskById,
+  getTaskQueue,
   getTasks,
   getTasksForAccount,
   getTasksForLead,

@@ -51,6 +51,7 @@ export function recordSlaAssigned(
     leadId?: string | null;
     explanation: string;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createSlaAuditLog(client, {
@@ -61,7 +62,7 @@ export function recordSlaAssigned(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     afterState: params.afterState,
   });
 }
@@ -76,6 +77,7 @@ export function recordSlaBreached(
     explanation: string;
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createSlaAuditLog(client, {
@@ -86,7 +88,7 @@ export function recordSlaBreached(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: params.beforeState,
     afterState: params.afterState,
   });
@@ -102,6 +104,7 @@ export function recordSlaResolved(
     explanation: string;
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
+    reasonCodes?: string[];
   },
 ) {
   return createSlaAuditLog(client, {
@@ -112,7 +115,7 @@ export function recordSlaResolved(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: params.beforeState,
     afterState: params.afterState,
   });

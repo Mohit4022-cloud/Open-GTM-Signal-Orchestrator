@@ -253,6 +253,7 @@ async function recomputeAccountScoreWithClient(
     entityId: account.id,
     accountId: account.id,
     explanation: nextScore.explanation.summary,
+    reasonCodes: nextReasonCodes,
     beforeState: {
       totalScore: account.overallScore,
       temperature: account.temperature,
@@ -274,6 +275,7 @@ async function recomputeAccountScoreWithClient(
       previousTemperature: account.temperature,
       newTemperature: nextScore.temperature,
       newScore: nextScore.totalScore,
+      reasonCodes: nextReasonCodes,
     });
   }
 
@@ -423,6 +425,7 @@ async function recomputeLeadScoreWithClient(
     accountId: lead.accountId,
     leadId: lead.id,
     explanation: nextScore.explanation.summary,
+    reasonCodes: nextReasonCodes,
     beforeState: {
       totalScore: lead.score,
       temperature: lead.temperature,
@@ -447,6 +450,7 @@ async function recomputeLeadScoreWithClient(
       previousTemperature: lead.temperature,
       newTemperature: nextScore.temperature,
       newScore: nextScore.totalScore,
+      reasonCodes: nextReasonCodes,
     });
   }
 
@@ -570,6 +574,7 @@ export async function attachSignalToEntities(
         params.note?.trim()
           ? `Previously unmatched signal was manually attached and rescored. ${params.note.trim()}`
           : "Previously unmatched signal was manually attached and rescored.",
+      reasonCodes: [],
       beforeState: {
         status: signal.status,
         accountId: signal.accountId,

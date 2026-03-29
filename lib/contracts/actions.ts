@@ -124,6 +124,18 @@ export type TaskQueueItemContract = {
   sla: TaskSlaSnapshotContract;
 };
 
+export type DashboardTaskSummaryContract = {
+  asOfIso: string;
+  openCount: number;
+  inProgressCount: number;
+  overdueCount: number;
+  urgentCount: number;
+  unassignedCount: number;
+  trackedSlaCount: number;
+  breachedCount: number;
+  dueSoonCount: number;
+};
+
 export type TaskFiltersInput = {
   ownerId?: string;
   status?: TaskStatus | TaskStatus[];

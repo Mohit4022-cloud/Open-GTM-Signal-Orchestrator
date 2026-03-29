@@ -53,6 +53,7 @@ export function recordScoreRecomputed(
     accountId?: string | null;
     leadId?: string | null;
     explanation: string;
+    reasonCodes?: string[];
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
   },
@@ -65,7 +66,7 @@ export function recordScoreRecomputed(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: params.beforeState,
     afterState: params.afterState,
   });
@@ -81,6 +82,7 @@ export function recordScoreThresholdCrossed(
     previousTemperature: string;
     newTemperature: string;
     newScore: number;
+    reasonCodes?: string[];
   },
 ) {
   return createScoringAuditLog(client, {
@@ -91,7 +93,7 @@ export function recordScoreThresholdCrossed(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: `Score temperature changed from ${params.previousTemperature} to ${params.newTemperature} at ${params.newScore}.`,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: {
       temperature: params.previousTemperature,
     },
@@ -148,6 +150,7 @@ export function recordSignalAttachedAndRescored(
     accountId?: string | null;
     leadId?: string | null;
     explanation: string;
+    reasonCodes?: string[];
     beforeState: Record<string, unknown>;
     afterState: Record<string, unknown>;
   },
@@ -160,7 +163,7 @@ export function recordSignalAttachedAndRescored(
     accountId: params.accountId,
     leadId: params.leadId,
     explanation: params.explanation,
-    reasonCodes: [],
+    reasonCodes: params.reasonCodes ?? [],
     beforeState: params.beforeState,
     afterState: params.afterState,
   });
