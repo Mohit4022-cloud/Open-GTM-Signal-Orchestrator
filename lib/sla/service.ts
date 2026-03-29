@@ -55,6 +55,10 @@ function resolveDate(value: Date | string | null | undefined, fallback: Date) {
   return Number.isNaN(resolved.getTime()) ? fallback : resolved;
 }
 
+function addSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + seconds * 1000);
+}
+
 function getUtcDayRange(now: Date) {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
@@ -189,6 +193,7 @@ export async function assignSlaForLeadWithClient(
 
   if (hasMaterialChange && resolvedPolicy.targetMinutes !== null) {
     const explanation = `Assigned ${resolvedPolicy.policyKey} to lead ${leadId}.`;
+    const auditCreatedAt = addSeconds(referenceTime, 30);
     await createSlaEvent(client, {
       entityType: SlaEntityType.LEAD,
       entityId: leadId,
@@ -201,7 +206,7 @@ export async function assignSlaForLeadWithClient(
       dueAt: resolvedPolicy.dueAt,
       explanation,
       reasonCodes: resolvedPolicy.reasonCodes,
-      createdAt: referenceTime,
+      createdAt: auditCreatedAt,
     });
     await recordSlaAssigned(client, {
       entityType: "lead",
@@ -210,7 +215,7 @@ export async function assignSlaForLeadWithClient(
       leadId,
       explanation,
       reasonCodes: resolvedPolicy.reasonCodes,
-      createdAt: referenceTime,
+      createdAt: auditCreatedAt,
       afterState: {
         policyKey: resolvedPolicy.policyKey,
         policyVersion: resolvedPolicy.policyVersion,
@@ -304,6 +309,7 @@ export async function assignSlaForTaskWithClient(
 
   if (shouldTrack && hasMaterialChange) {
     const explanation = `Assigned task SLA tracking for ${taskId}.`;
+    const auditCreatedAt = addSeconds(task.createdAt, 1);
     await createSlaEvent(client, {
       entityType: SlaEntityType.TASK,
       entityId: taskId,
@@ -316,7 +322,7 @@ export async function assignSlaForTaskWithClient(
       targetMinutes,
       dueAt,
       explanation,
-      createdAt: task.createdAt,
+      createdAt: auditCreatedAt,
     });
     await recordSlaAssigned(client, {
       entityType: "task",
@@ -325,7 +331,7 @@ export async function assignSlaForTaskWithClient(
       leadId: task.leadId,
       explanation,
       reasonCodes: shouldTrack ? ["sla_tracking_enabled"] : [],
-      createdAt: task.createdAt,
+      createdAt: auditCreatedAt,
       afterState: {
         isSlaTracked: shouldTrack,
         policyKey,

@@ -30,6 +30,33 @@ test("GET /api/leads returns SLA-filtered queue rows", async () => {
   );
 });
 
+test("GET /api/leads exposes routing and queue flags for phase 4 queue filters", async () => {
+  const response = await leadsGet(
+    new Request("http://localhost/api/leads?hot=true&recentlyRouted=true"),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(payload.totalCount >= 1);
+  assert.ok(
+    payload.rows.every(
+      (lead: {
+        routing: { currentQueue: string | null; routedAtIso: string | null };
+        queueFlags: {
+          isHot: boolean;
+          isOverdueSla: boolean;
+          isUnassigned: boolean;
+          isRecentlyRouted: boolean;
+        };
+      }) =>
+        typeof lead.routing.currentQueue !== "undefined" &&
+        typeof lead.routing.routedAtIso !== "undefined" &&
+        lead.queueFlags.isHot === true &&
+        lead.queueFlags.isRecentlyRouted === true,
+    ),
+  );
+});
+
 test("GET /api/leads returns 400 for invalid filters", async () => {
   const response = await leadsGet(
     new Request("http://localhost/api/leads?tracked=maybe"),

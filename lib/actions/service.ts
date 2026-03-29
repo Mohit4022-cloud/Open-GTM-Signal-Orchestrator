@@ -72,6 +72,10 @@ function resolveReferenceTime(value: Date | string | null | undefined, fallback 
   return Number.isNaN(resolved.getTime()) ? fallback : resolved;
 }
 
+function addSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + seconds * 1000);
+}
+
 function parseStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -808,7 +812,7 @@ export async function generateActionsForLeadWithClient(
     context.templateContext.accountId,
     leadId,
     evaluation,
-    context.now,
+    addSeconds(context.now, 40),
   );
 
   await syncPrimaryLeadSlaTask(client, leadId, context.routingDecision?.id ?? null);
@@ -842,7 +846,7 @@ export async function generateActionsForAccountWithClient(
     accountId,
     null,
     evaluation,
-    context.now,
+    addSeconds(context.now, 40),
   );
 }
 

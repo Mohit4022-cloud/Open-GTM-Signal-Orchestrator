@@ -1,6 +1,7 @@
 import { ScoreEntityType, Segment, SignalStatus, Temperature } from "@prisma/client";
 
-import { getRecommendationsList, getTasks } from "../lib/actions";
+import { getDashboardTaskSummary, getRecommendationsList, getTaskQueue } from "../lib/actions";
+import { getAuditLogForEntity, getRecentAuditEvents } from "../lib/audit/queries";
 import { getAccountById, getAccounts } from "../lib/queries/accounts";
 import { getLeadById, getLeadQueue } from "../lib/queries/leads";
 import {
@@ -54,6 +55,9 @@ async function main() {
     hotBucketAccounts,
     urgentBucketAccounts,
     recentRoutingDecisions,
+    taskSummary,
+    recentAuditEntries,
+    hotRecentlyRoutedLeads,
   ] = await Promise.all([
     getDashboardSummary(),
     getHotAccounts(),
@@ -66,6 +70,9 @@ async function main() {
     getAccounts({ scoreBucket: "hot" }),
     getAccounts({ scoreBucket: "urgent" }),
     getRecentRoutingDecisions(6),
+    getDashboardTaskSummary(),
+    getRecentAuditEvents(10),
+    getLeadQueue({ hot: true, recentlyRouted: true }),
   ]);
 
   invariant(
@@ -222,9 +229,29 @@ async function main() {
     "Account detail open tasks must expose stable action metadata, reason summaries, and explanations.",
   );
   invariant(accountDetail.auditLog.length > 0, "Expected account detail audit log.");
+  invariant(
+    recentAuditEntries.length > 0 &&
+      recentAuditEntries.every(
+        (entry) =>
+          Boolean(entry.id) &&
+          Boolean(entry.timestampIso) &&
+          Boolean(entry.actor.summary) &&
+          Boolean(entry.action) &&
+          Boolean(entry.entity.summary) &&
+          Boolean(entry.reason.summary) &&
+          Boolean(entry.explanation),
+      ),
+    "Recent audit events must expose the stable Phase 4 audit contract.",
+  );
+  const accountAudit = await getAuditLogForEntity("account", "acc_summitflow_finance", { limit: 8 });
+  invariant(accountAudit.length > 0, "Expected canonical account audit history.");
+  invariant(
+    accountAudit.some((entry) => entry.entity.accountId === "acc_summitflow_finance"),
+    "Account audit history should include cross-entity account-linked rows.",
+  );
 
   const [atlasLeadQueue, beaconOpsRecommendations, breachedLeadQueue, atlasLeadDetail] = await Promise.all([
-    getTasks({ entityType: "lead", entityId: "acc_atlas_grid_lead_01" }),
+    getTaskQueue({ entityType: "lead", entityId: "acc_atlas_grid_lead_01" }),
     getRecommendationsList("account", "acc_beaconops"),
     getLeadQueue({ tracked: true, slaState: "breached" }),
     getLeadById("acc_atlas_grid_lead_01"),
@@ -240,6 +267,7 @@ async function main() {
         Boolean(task.priorityCode) &&
         Boolean(task.priorityLabel) &&
         Boolean(task.reasonSummary.primaryCode) &&
+        Boolean(task.createdAtIso) &&
         Boolean(task.linkedEntity.entityType) &&
         Boolean(task.explanation.summary) &&
         typeof task.sla.currentState === "string" &&
@@ -267,6 +295,22 @@ async function main() {
   invariant(
     atlasLeadDetail?.sla.currentState === "breached",
     "Lead detail must expose the nested SLA snapshot.",
+  );
+  invariant(
+    hotRecentlyRoutedLeads.rows.every(
+      (lead) =>
+        lead.queueFlags.isHot &&
+        lead.queueFlags.isRecentlyRouted &&
+        "currentQueue" in lead.routing,
+    ),
+    "Lead queue rows must expose stable routing and queue-flag contracts.",
+  );
+  invariant(
+    typeof taskSummary.asOfIso === "string" &&
+      typeof taskSummary.openCount === "number" &&
+      typeof taskSummary.breachedCount === "number" &&
+      typeof taskSummary.dueSoonCount === "number",
+    "Dashboard task summary must expose stable Phase 4 aggregate fields.",
   );
 
   const [accountScore, leadScore, accountHistory] = await Promise.all([

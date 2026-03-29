@@ -91,6 +91,10 @@ function resolveTrigger(
   };
 }
 
+function addSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + seconds * 1000);
+}
+
 function getAllReasonCodes(componentBreakdown: ScoreComponentBreakdownContract[]) {
   return [...new Set(componentBreakdown.flatMap((component) => component.reasonCodes))];
 }
@@ -185,6 +189,7 @@ async function recomputeAccountScoreWithClient(
     new Date(),
   );
   const effectiveAt = new Date(resolvedTrigger.effectiveAtIso);
+  const auditCreatedAt = addSeconds(effectiveAt, 10);
   const input = buildAccountScoringInput({
     segment: account.segment,
     accountTier: account.accountTier,
@@ -255,7 +260,7 @@ async function recomputeAccountScoreWithClient(
     accountId: account.id,
     explanation: nextScore.explanation.summary,
     reasonCodes: nextReasonCodes,
-    createdAt: effectiveAt,
+    createdAt: auditCreatedAt,
     beforeState: {
       totalScore: account.overallScore,
       temperature: account.temperature,
@@ -278,7 +283,7 @@ async function recomputeAccountScoreWithClient(
       newTemperature: nextScore.temperature,
       newScore: nextScore.totalScore,
       reasonCodes: nextReasonCodes,
-      createdAt: effectiveAt,
+      createdAt: addSeconds(effectiveAt, 11),
     });
   }
 
@@ -339,6 +344,7 @@ async function recomputeLeadScoreWithClient(
     new Date(),
   );
   const effectiveAt = new Date(resolvedTrigger.effectiveAtIso);
+  const auditCreatedAt = addSeconds(effectiveAt, 10);
   const accountScore = computeAccountScore(
     buildAccountScoringInput({
       segment: lead.account.segment,
@@ -429,7 +435,7 @@ async function recomputeLeadScoreWithClient(
     leadId: lead.id,
     explanation: nextScore.explanation.summary,
     reasonCodes: nextReasonCodes,
-    createdAt: effectiveAt,
+    createdAt: auditCreatedAt,
     beforeState: {
       totalScore: lead.score,
       temperature: lead.temperature,
@@ -455,7 +461,7 @@ async function recomputeLeadScoreWithClient(
       newTemperature: nextScore.temperature,
       newScore: nextScore.totalScore,
       reasonCodes: nextReasonCodes,
-      createdAt: effectiveAt,
+      createdAt: addSeconds(effectiveAt, 11),
     });
   }
 

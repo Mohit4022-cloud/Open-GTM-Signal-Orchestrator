@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 
+import { getDashboardTaskSummary } from "@/lib/actions";
 import { db } from "@/lib/db";
 import { withMissingTableFallback } from "@/lib/prisma-errors";
 import {
@@ -56,4 +57,18 @@ test("missing-table fallback does not swallow unrelated errors", async () => {
       }, [] as string[]),
     /unexpected failure/,
   );
+});
+
+test("dashboard task summary exposes stable phase 4 aggregate fields", async () => {
+  const summary = await getDashboardTaskSummary();
+
+  assert.equal(typeof summary.asOfIso, "string");
+  assert.equal(typeof summary.openCount, "number");
+  assert.equal(typeof summary.inProgressCount, "number");
+  assert.equal(typeof summary.overdueCount, "number");
+  assert.equal(typeof summary.urgentCount, "number");
+  assert.equal(typeof summary.unassignedCount, "number");
+  assert.equal(typeof summary.trackedSlaCount, "number");
+  assert.equal(typeof summary.breachedCount, "number");
+  assert.equal(typeof summary.dueSoonCount, "number");
 });

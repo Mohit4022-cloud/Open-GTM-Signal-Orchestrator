@@ -28,8 +28,21 @@ test("GET /api/tasks returns frontend-safe filtered queue rows", async () => {
   assert.ok(payload.totalCount >= 1);
   assert.ok(
     payload.rows.every(
-      (task: { priorityCode: string; sla: { isTracked: boolean; currentState: string } }) =>
+      (task: {
+        priorityCode: string;
+        createdAtIso: string;
+        owner: { id: string | null; name: string | null } | null;
+        linkedEntity: { entityType: string; entityId: string };
+        reasonSummary: { primaryCode: string | null };
+        explanation: { summary: string };
+        sla: { isTracked: boolean; currentState: string };
+      }) =>
         task.priorityCode === "P1" &&
+        typeof task.createdAtIso === "string" &&
+        typeof task.linkedEntity.entityType === "string" &&
+        typeof task.linkedEntity.entityId === "string" &&
+        "primaryCode" in task.reasonSummary &&
+        typeof task.explanation.summary === "string" &&
         task.sla.isTracked === true &&
         task.sla.currentState === "on_track",
     ),

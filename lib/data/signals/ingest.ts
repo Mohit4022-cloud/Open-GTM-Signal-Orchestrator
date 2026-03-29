@@ -61,6 +61,10 @@ function getErrorMessage(error: unknown) {
   return "Unknown signal ingest error.";
 }
 
+function addSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + seconds * 1000);
+}
+
 export async function ingestSignal(input: IngestSignalInput | unknown): Promise<IngestSignalResult> {
   const parsedInput: ValidatedIngestSignalInput = parseSignalInput(input);
   const normalizedSignal = normalizeSignal(parsedInput);
@@ -136,14 +140,14 @@ export async function ingestSignal(input: IngestSignalInput | unknown): Promise<
         signalId,
         accountId: identityResolution.account?.id ?? null,
         rawPayload: normalizedSignal.rawPayload,
-        createdAt: normalizedSignal.receivedAt,
+        createdAt: addSeconds(normalizedSignal.receivedAt, 0),
       });
 
       await recordSignalNormalized(tx, {
         signalId,
         accountId: identityResolution.account?.id ?? null,
         normalizedEvent: normalizedSignal.normalizedPayload,
-        createdAt: normalizedSignal.receivedAt,
+        createdAt: addSeconds(normalizedSignal.receivedAt, 1),
       });
 
       if (identityResolution.matched) {
@@ -153,7 +157,7 @@ export async function ingestSignal(input: IngestSignalInput | unknown): Promise<
           contactId: identityResolution.contact?.id ?? null,
           explanation: identityResolution.explanation,
           reasonCodes: identityResolution.reasonCodes,
-          createdAt: normalizedSignal.receivedAt,
+          createdAt: addSeconds(normalizedSignal.receivedAt, 2),
         });
 
         await recomputeScoresForSignalWithClient(tx, signalId, {
@@ -173,7 +177,7 @@ export async function ingestSignal(input: IngestSignalInput | unknown): Promise<
         signalId,
         explanation: identityResolution.explanation,
         reasonCodes: identityResolution.reasonCodes,
-        createdAt: normalizedSignal.receivedAt,
+        createdAt: addSeconds(normalizedSignal.receivedAt, 2),
       });
     });
   } catch (error) {
@@ -210,7 +214,7 @@ export async function ingestSignal(input: IngestSignalInput | unknown): Promise<
         signalId,
         errorMessage,
         rawPayload: normalizedSignal.rawPayload,
-        createdAt: normalizedSignal.receivedAt,
+        createdAt: addSeconds(normalizedSignal.receivedAt, 2),
       });
     } catch {
       // Ignore follow-on persistence errors and surface the original failure.

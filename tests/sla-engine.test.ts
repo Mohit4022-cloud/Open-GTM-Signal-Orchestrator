@@ -3,8 +3,11 @@ import { after, beforeEach, test } from "node:test";
 
 import { ActionCategory, ActionType, SlaEventType } from "@prisma/client";
 
+import { createManualTask } from "@/lib/actions";
 import {
+  assignSlaForTask,
   buildLeadSlaSnapshot,
+  buildTaskSlaSnapshot,
   getDashboardSlaSummary,
   getDueSoonThresholdMs,
   getLeadSlaState,
@@ -21,6 +24,48 @@ beforeEach(async () => {
 
 after(async () => {
   await resetDatabase();
+});
+
+test("assignSlaForTask derives deterministic tracked-task deadlines and target minutes", async () => {
+  const taskId = await createManualTask(
+    {
+      accountId: "acc_meridian_freight",
+      leadId: "acc_meridian_freight_lead_01",
+      ownerId: "usr_amelia_ross",
+      taskType: "CALL",
+      priorityCode: "P2",
+      dueAtIso: "2026-03-27T18:15:00.000Z",
+      title: "Call Meridian Freight",
+      description: "Handle the warm inbound follow-up.",
+    },
+    {
+      createdAt: new Date("2026-03-27T18:00:00.000Z"),
+    },
+  );
+
+  const snapshot = await assignSlaForTask(taskId, {
+    isTracked: true,
+    policyKey: "sla_hot_inbound_15m",
+    policyVersion: "routing/v1",
+    dueAt: new Date("2026-03-27T18:15:00.000Z"),
+  });
+  const task = await db.task.findUniqueOrThrow({
+    where: { id: taskId },
+    select: {
+      isSlaTracked: true,
+      slaPolicyKey: true,
+      slaPolicyVersion: true,
+      slaTargetMinutes: true,
+      dueAt: true,
+    },
+  });
+
+  assert.ok(snapshot);
+  assert.equal(task.isSlaTracked, true);
+  assert.equal(task.slaPolicyKey, "sla_hot_inbound_15m");
+  assert.equal(task.slaPolicyVersion, "routing/v1");
+  assert.equal(task.slaTargetMinutes, 15);
+  assert.equal(task.dueAt.toISOString(), "2026-03-27T18:15:00.000Z");
 });
 
 test("seeded SLA scenarios expose deterministic lead and task states", async () => {
@@ -173,4 +218,67 @@ test("due soon thresholds and met-SLA snapshots remain deterministic", () => {
   assert.equal(completedLead.metSla, true);
   assert.equal(lateLead.currentState, "completed");
   assert.equal(lateLead.metSla, false);
+});
+
+test("SLA snapshot builders cover on-track, due-soon, overdue, breached, and completed states", () => {
+  const onTrack = buildLeadSlaSnapshot({
+    isTracked: true,
+    policyKey: "sla_warm_inbound_2h",
+    policyVersion: "routing/v1",
+    targetMinutes: 120,
+    dueAt: new Date("2026-03-27T20:00:00.000Z"),
+    breachedAt: null,
+    firstResponseAt: null,
+    routedAt: new Date("2026-03-27T18:00:00.000Z"),
+    now: new Date("2026-03-27T18:30:00.000Z"),
+  });
+  const dueSoon = buildLeadSlaSnapshot({
+    isTracked: true,
+    policyKey: "sla_hot_inbound_15m",
+    policyVersion: "routing/v1",
+    targetMinutes: 15,
+    dueAt: new Date("2026-03-27T18:15:00.000Z"),
+    breachedAt: null,
+    firstResponseAt: null,
+    routedAt: new Date("2026-03-27T18:00:00.000Z"),
+    now: new Date("2026-03-27T18:10:00.000Z"),
+  });
+  const overdue = buildLeadSlaSnapshot({
+    isTracked: true,
+    policyKey: "sla_hot_inbound_15m",
+    policyVersion: "routing/v1",
+    targetMinutes: 15,
+    dueAt: new Date("2026-03-27T18:15:00.000Z"),
+    breachedAt: null,
+    firstResponseAt: null,
+    routedAt: new Date("2026-03-27T18:00:00.000Z"),
+    now: new Date("2026-03-27T18:16:00.000Z"),
+  });
+  const breached = buildTaskSlaSnapshot({
+    isTracked: true,
+    policyKey: "sla_hot_inbound_15m",
+    policyVersion: "routing/v1",
+    targetMinutes: 15,
+    dueAt: new Date("2026-03-27T18:15:00.000Z"),
+    breachedAt: new Date("2026-03-27T18:16:00.000Z"),
+    completedAt: null,
+    now: new Date("2026-03-27T18:20:00.000Z"),
+  });
+  const completed = buildTaskSlaSnapshot({
+    isTracked: true,
+    policyKey: "sla_hot_inbound_15m",
+    policyVersion: "routing/v1",
+    targetMinutes: 15,
+    dueAt: new Date("2026-03-27T18:15:00.000Z"),
+    breachedAt: null,
+    completedAt: new Date("2026-03-27T18:12:00.000Z"),
+    now: new Date("2026-03-27T18:20:00.000Z"),
+  });
+
+  assert.equal(onTrack.currentState, "on_track");
+  assert.equal(dueSoon.currentState, "due_soon");
+  assert.equal(overdue.currentState, "overdue");
+  assert.equal(breached.currentState, "breached");
+  assert.equal(completed.currentState, "completed");
+  assert.equal(completed.metSla, true);
 });
