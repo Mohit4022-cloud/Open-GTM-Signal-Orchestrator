@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit",
     "seed": "npm run db:seed",
     "postinstall": "prisma generate",
+    "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node --import tsx prisma/seed.ts",
     "db:verify-seed": "node --import tsx prisma/verify-seed.ts",
@@ -36,7 +37,7 @@
     "db:verify-signal-pipeline": "node --import tsx prisma/verify-signal-pipeline.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
-    "test": "node --import tsx --test --test-concurrency=1 tests/*.test.ts"
+    "test": "node --import ./tests/setup.mjs --import tsx --test --test-concurrency=1 tests/*.test.ts"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"

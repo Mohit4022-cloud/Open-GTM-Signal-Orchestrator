@@ -22,7 +22,7 @@ CREATE TABLE "new_SignalEvent" (
     "payloadSummary" TEXT NOT NULL DEFAULT '',
     "rawPayloadJson" JSONB NOT NULL,
     "normalizedPayloadJson" JSONB NOT NULL,
-    "identityResolutionCodesJson" JSONB NOT NULL DEFAULT [],
+    "identityResolutionCodesJson" JSONB NOT NULL DEFAULT '[]',
     "occurredAt" DATETIME NOT NULL,
     "receivedAt" DATETIME NOT NULL,
     "dedupeKey" TEXT NOT NULL,
