@@ -25,6 +25,28 @@ export type ModulePlaceholderConfig = {
 };
 
 export type {
+  ActionEntityType,
+  ActionExplanationContract,
+  ActionGenerationRunContract,
+  ActionOwnerSummaryContract,
+  ActionReasonCode,
+  ActionReasonDetailContract,
+  ActionReasonSummaryContract,
+  ActionRecommendationContract,
+  ActionRecommendationsListContract,
+  CreateTaskRequest,
+  LinkedEntitySummaryContract,
+  PublicActionApiErrorCode,
+  PublicActionApiErrorResponseContract,
+  PublicTaskApiErrorCode,
+  PublicTaskApiErrorResponseContract,
+  TaskFiltersInput,
+  TaskPriorityCode,
+  TaskQueueContract,
+  TaskQueueItemContract,
+  UpdateTaskRequest,
+} from "@/lib/contracts/actions";
+export type {
   AccountDetailContract,
   AccountDetailView,
   AccountListRow,

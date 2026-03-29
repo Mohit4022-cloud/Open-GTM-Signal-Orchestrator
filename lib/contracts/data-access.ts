@@ -1,4 +1,11 @@
+import type { ActionCategory } from "@prisma/client";
+
 import type { EntityScoreBreakdownContract, ScoreHistoryRowContract } from "@/lib/contracts/scoring";
+import type {
+  ActionExplanationContract,
+  ActionReasonSummaryContract,
+  TaskPriorityCode,
+} from "@/lib/contracts/actions";
 
 export type MetricTone = "default" | "positive" | "warning" | "danger";
 
@@ -226,8 +233,11 @@ export type AccountTimelineEventContract = RecentSignalContract & {
 export type AccountOpenTaskContract = {
   id: string;
   taskType: string;
+  actionType: string;
+  actionCategory: ActionCategory;
   taskTypeLabel: string;
   priority: string;
+  priorityCode: TaskPriorityCode;
   priorityLabel: string;
   status: string;
   statusLabel: string;
@@ -237,6 +247,8 @@ export type AccountOpenTaskContract = {
   dueAtLabel: string;
   ownerId: string | null;
   ownerName: string | null;
+  reasonSummary: ActionReasonSummaryContract;
+  explanation: ActionExplanationContract;
   isOverdue: boolean;
 };
 

@@ -3,11 +3,12 @@ import {
   LifecycleStage,
   ScoreEntityType,
   Segment,
-  TaskStatus,
   Temperature,
   type Prisma,
 } from "@prisma/client";
 
+import { getTasksForAccount } from "@/lib/actions";
+import { priorityValueByCode } from "@/lib/contracts/actions";
 import type {
   AccountDetailContract,
   AccountDetailView,
@@ -246,8 +247,7 @@ export async function getAccounts(
 }
 
 export async function getAccountById(id: string): Promise<AccountDetailContract | null> {
-  const now = new Date();
-  const [account, timeline, score, scoreHistory] = await Promise.all([
+  const [account, timeline, score, scoreHistory, openTaskQueue] = await Promise.all([
     db.account.findUnique({
       where: { id },
       select: {
@@ -325,32 +325,6 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
             },
           },
         },
-        tasks: {
-          where: {
-            status: {
-              not: TaskStatus.COMPLETED,
-            },
-          },
-          take: 6,
-          orderBy: {
-            dueAt: "asc",
-          },
-          select: {
-            id: true,
-            taskType: true,
-            priority: true,
-            status: true,
-            title: true,
-            description: true,
-            dueAt: true,
-            ownerId: true,
-            owner: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
         auditLogs: {
           take: 8,
           orderBy: {
@@ -372,6 +346,7 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
     getAccountTimeline(id, { limit: 8 }),
     getAccountScoreBreakdown(id),
     getScoreHistoryForEntity(ScoreEntityType.ACCOUNT, id, { limit: 8 }),
+    getTasksForAccount(id),
   ]);
 
   if (!account || !score) {
@@ -474,21 +449,26 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
         description: signal.displaySubtitle,
       };
     }),
-    openTasks: account.tasks.map((task) => ({
+    openTasks: openTaskQueue.slice(0, 6).map((task) => ({
       id: task.id,
       taskType: task.taskType,
+      actionType: task.actionType,
+      actionCategory: task.actionCategory,
       taskTypeLabel: formatEnumLabel(task.taskType),
-      priority: task.priority,
-      priorityLabel: formatEnumLabel(task.priority),
+      priority: priorityValueByCode[task.priorityCode],
+      priorityCode: task.priorityCode,
+      priorityLabel: task.priorityLabel,
       status: task.status,
       statusLabel: formatEnumLabel(task.status),
       title: task.title,
       description: task.description,
-      dueAtIso: task.dueAt.toISOString(),
-      dueAtLabel: formatRelativeTime(task.dueAt),
-      ownerId: task.ownerId,
+      dueAtIso: task.dueAtIso,
+      dueAtLabel: formatRelativeTime(task.dueAtIso),
+      ownerId: task.owner?.id ?? null,
       ownerName: task.owner?.name ?? null,
-      isOverdue: task.dueAt.getTime() < now.getTime(),
+      reasonSummary: task.reasonSummary,
+      explanation: task.explanation,
+      isOverdue: task.isOverdue,
     })),
     score,
     scoreHistory: scoreHistory.rows,
@@ -515,7 +495,7 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
       name: account.name,
       overallScore: account.overallScore,
       signals: timeline,
-      tasks: account.tasks,
+      tasks: openTaskQueue,
     }),
   };
 }
