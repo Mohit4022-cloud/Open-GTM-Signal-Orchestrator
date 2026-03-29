@@ -338,7 +338,7 @@ export async function getAccountById(id: string): Promise<AccountDetailContract 
     getAccountScoreBreakdown(id),
     getScoreHistoryForEntity(ScoreEntityType.ACCOUNT, id, { limit: 8 }),
     getTasksForAccount(id),
-    getAuditLogForEntity("account", id, { limit: 8 }),
+    getAuditLogForEntity("account", id, { limit: 12 }),
   ]);
 
   if (!account || !score) {

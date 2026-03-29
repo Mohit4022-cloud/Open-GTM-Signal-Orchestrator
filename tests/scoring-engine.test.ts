@@ -553,6 +553,61 @@ test("manual priority overrides update the manual component and write audit hist
   assert.ok(auditLog);
 });
 
+test("signal-triggered score history keeps reason metadata unique, ordered, and display-ready", async () => {
+  await resetDatabase();
+  const primaryContact = await db.contact.findUniqueOrThrow({
+    where: {
+      id: "acc_beaconops_contact_01",
+    },
+    select: {
+      email: true,
+    },
+  });
+  const result = await ingestSignal({
+    source_system: "product",
+    event_type: "product_usage_milestone",
+    account_domain: "beaconopspartners.com",
+    contact_email: primaryContact.email,
+    occurred_at: "2026-03-27T18:30:00.000Z",
+    received_at: "2026-03-27T18:34:00.000Z",
+    payload: {
+      workspace_id: "test_reason_metadata_workspace_1",
+      milestone: "connected_crm",
+      user_id: "test_reason_metadata_user_1",
+    },
+  });
+  const history = await getScoreHistoryForEntity(ScoreEntityType.LEAD, "acc_beaconops_lead_01", {
+    limit: 8,
+  });
+  const triggeredRow = history.rows.find(
+    (row) => row.trigger.signalSummary?.signalId === result.signalId,
+  );
+
+  assert.equal(result.status, SignalStatus.MATCHED);
+  assert.ok(triggeredRow);
+  assert.equal(triggeredRow?.reasonCodes.length, new Set(triggeredRow?.reasonCodes).size);
+  assert.equal(
+    triggeredRow?.reasonDetails.length,
+    new Set(triggeredRow?.reasonDetails.map((detail) => detail.code)).size,
+  );
+  assert.equal(
+    triggeredRow?.reasonDetails.every(
+      (detail) =>
+        triggeredRow.reasonCodes.includes(detail.code) &&
+        scoreReasonCodeSet.has(detail.code) &&
+        detail.label.length > 0 &&
+        detail.description.length > 0,
+    ),
+    true,
+  );
+  for (let index = 1; index < (triggeredRow?.reasonDetails.length ?? 0); index += 1) {
+    const previous = triggeredRow!.reasonDetails[index - 1]!;
+    const current = triggeredRow!.reasonDetails[index]!;
+
+    assert.ok(Math.abs(previous.points) >= Math.abs(current.points));
+  }
+});
+
 test("no-op recompute does not create duplicate score history rows", async () => {
   const account = await db.account.findUniqueOrThrow({
     where: {

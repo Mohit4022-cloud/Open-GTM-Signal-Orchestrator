@@ -352,6 +352,158 @@ test("evaluateRoutingDecision applies routing precedence deterministically", asy
   assert.equal(opsReviewDecision.decisionType, "ops_review_queue");
 });
 
+test("routing precedence branches return the expected owner, queue, and reason traces", async () => {
+  const cases = [
+    {
+      name: "named account owner",
+      context: buildRoutingContext({
+        namedOwnerId: "usr_dante_kim",
+        existingOwnerId: "usr_owen_price",
+      }),
+      deps: createRoutingDeps(),
+      expectedDecisionType: "named_account_owner",
+      expectedOwnerId: "usr_dante_kim",
+      expectedQueue: "na-west-smb",
+      expectedReasonCodes: ["account_is_named", "sla_hot_inbound_15m"],
+      expectedSelectedStepCodes: ["account_is_named", "owner_has_capacity"],
+      expectedFallbackStepCodes: null,
+    },
+    {
+      name: "existing owner after named-owner fallback",
+      context: buildRoutingContext({
+        namedOwnerId: "usr_dante_kim",
+        existingOwnerId: "usr_owen_price",
+      }),
+      deps: createRoutingDeps({
+        ownerCapacities: {
+          usr_dante_kim: false,
+          usr_owen_price: true,
+        },
+      }),
+      expectedDecisionType: "existing_account_owner",
+      expectedOwnerId: "usr_owen_price",
+      expectedQueue: "na-west-smb",
+      expectedReasonCodes: [
+        "existing_owner_preserved",
+        "fallback_after_capacity",
+        "sla_hot_inbound_15m",
+      ],
+      expectedSelectedStepCodes: ["existing_owner_preserved", "owner_has_capacity"],
+      expectedFallbackStepCodes: ["account_is_named", "owner_over_capacity"],
+    },
+    {
+      name: "strategic override",
+      context: buildRoutingContext({
+        accountTier: AccountTier.STRATEGIC,
+        segment: Segment.STRATEGIC,
+      }),
+      deps: createRoutingDeps(),
+      expectedDecisionType: "strategic_tier_override",
+      expectedOwnerId: "usr_elena_morales",
+      expectedQueue: "strategic-accounts",
+      expectedReasonCodes: ["strategic_tier_override", "sla_hot_inbound_15m"],
+      expectedSelectedStepCodes: [
+        "strategic_tier_override",
+        "strategic_pair_assigned",
+        "owner_has_capacity",
+      ],
+      expectedFallbackStepCodes: null,
+    },
+    {
+      name: "territory segment rule",
+      context: buildRoutingContext({
+        geography: Geography.NA_WEST,
+        segment: Segment.SMB,
+        accountTier: AccountTier.TIER_3,
+      }),
+      deps: createRoutingDeps(),
+      expectedDecisionType: "territory_segment_rule",
+      expectedOwnerId: "usr_owen_price",
+      expectedQueue: "na-west-smb",
+      expectedReasonCodes: ["territory_segment_match", "sla_hot_inbound_15m"],
+      expectedSelectedStepCodes: [
+        "territory_segment_match",
+        "round_robin_selected",
+        "owner_has_capacity",
+      ],
+      expectedFallbackStepCodes: null,
+    },
+    {
+      name: "fallback round robin",
+      context: buildRoutingContext({
+        geography: Geography.APAC,
+        segment: Segment.MID_MARKET,
+        accountTier: AccountTier.TIER_2,
+      }),
+      deps: createRoutingDeps({
+        poolSelections: {
+          "pool-apac-fallback": {
+            selectedOwnerId: "usr_ivy_ng",
+          },
+        },
+      }),
+      expectedDecisionType: "round_robin_pool",
+      expectedOwnerId: "usr_ivy_ng",
+      expectedQueue: "apac-review",
+      expectedReasonCodes: ["sla_hot_inbound_15m"],
+      expectedSelectedStepCodes: ["round_robin_selected", "owner_has_capacity"],
+      expectedFallbackStepCodes: null,
+    },
+    {
+      name: "ops review",
+      context: buildRoutingContext({
+        geography: Geography.APAC,
+        segment: Segment.MID_MARKET,
+        accountTier: AccountTier.TIER_2,
+        temperature: Temperature.WARM,
+      }),
+      deps: createRoutingDeps({
+        poolSelections: {
+          "pool-apac-fallback": {
+            selectedOwnerId: null,
+            capacityByOwner: {
+              usr_ivy_ng: false,
+            },
+          },
+        },
+      }),
+      expectedDecisionType: "ops_review_queue",
+      expectedOwnerId: null,
+      expectedQueue: "ops-review",
+      expectedReasonCodes: [
+        "sent_to_ops_review",
+        "fallback_after_capacity",
+        "sla_warm_inbound_2h",
+      ],
+      expectedSelectedStepCodes: ["no_eligible_owner_found", "sent_to_ops_review"],
+      expectedFallbackStepCodes: null,
+    },
+  ] as const;
+
+  for (const scenario of cases) {
+    const decision = await evaluateRoutingDecision(
+      unitRoutingConfig,
+      scenario.context,
+      scenario.deps,
+    );
+    const selectedStep = decision.explanation.evaluatedPolicies.find((step) => step.selected);
+
+    assert.equal(decision.decisionType, scenario.expectedDecisionType, scenario.name);
+    assert.equal(decision.assignedOwner?.id ?? null, scenario.expectedOwnerId, scenario.name);
+    assert.equal(decision.assignedQueue, scenario.expectedQueue, scenario.name);
+    assert.deepEqual(decision.reasonCodes, scenario.expectedReasonCodes, scenario.name);
+    assert.deepEqual(selectedStep?.reasonCodes, scenario.expectedSelectedStepCodes, scenario.name);
+
+    if (scenario.expectedFallbackStepCodes) {
+      assert.deepEqual(
+        decision.explanation.evaluatedPolicies[0]?.reasonCodes,
+        scenario.expectedFallbackStepCodes,
+        scenario.name,
+      );
+    }
+  }
+});
+
 test("capacity fallback keeps top-level routing reasons concise and step diagnostics verbose", async () => {
   const decision = await evaluateRoutingDecision(
     unitRoutingConfig,

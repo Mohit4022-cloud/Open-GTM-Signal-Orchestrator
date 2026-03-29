@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 
-import { ActionCategory, ActionType, SlaEventType } from "@prisma/client";
+import { ActionCategory, ActionType, SignalCategory, SignalType, SlaEventType, Temperature } from "@prisma/client";
 
 import { createManualTask } from "@/lib/actions";
 import {
+  assignSlaForLead,
   assignSlaForTask,
   buildLeadSlaSnapshot,
   buildTaskSlaSnapshot,
@@ -66,6 +67,139 @@ test("assignSlaForTask derives deterministic tracked-task deadlines and target m
   assert.equal(task.slaPolicyVersion, "routing/v1");
   assert.equal(task.slaTargetMinutes, 15);
   assert.equal(task.dueAt.toISOString(), "2026-03-27T18:15:00.000Z");
+});
+
+test("assignSlaForLead derives deterministic policies, deadlines, and immediate states", async () => {
+  const cases = [
+    {
+      leadId: "acc_atlas_grid_lead_01",
+      context: {
+        inboundType: "Inbound",
+        temperature: Temperature.HOT,
+        triggerSignal: {
+          eventType: SignalType.FORM_FILL,
+          eventCategory: SignalCategory.CONVERSION,
+          receivedAt: new Date("2026-03-27T18:00:00.000Z"),
+        },
+        referenceTime: new Date("2026-03-27T18:00:00.000Z"),
+      },
+      expected: {
+        policyKey: "sla_hot_inbound_15m",
+        policyVersion: "routing/v1",
+        targetMinutes: 15,
+        dueAtIso: "2026-03-27T18:15:00.000Z",
+        currentState: "on_track",
+      },
+    },
+    {
+      leadId: "acc_meridian_freight_lead_01",
+      context: {
+        inboundType: "Inbound",
+        temperature: Temperature.WARM,
+        triggerSignal: {
+          eventType: SignalType.FORM_FILL,
+          eventCategory: SignalCategory.CONVERSION,
+          receivedAt: new Date("2026-03-27T19:00:00.000Z"),
+        },
+        referenceTime: new Date("2026-03-27T19:00:00.000Z"),
+      },
+      expected: {
+        policyKey: "sla_warm_inbound_2h",
+        policyVersion: "routing/v1",
+        targetMinutes: 120,
+        dueAtIso: "2026-03-27T21:00:00.000Z",
+        currentState: "on_track",
+      },
+    },
+    {
+      leadId: "acc_signalnest_lead_01",
+      context: {
+        inboundType: "Product-led",
+        temperature: Temperature.HOT,
+        triggerSignal: {
+          eventType: SignalType.PRODUCT_USAGE_MILESTONE,
+          eventCategory: SignalCategory.PRODUCT,
+          receivedAt: new Date("2026-03-27T20:00:00.000Z"),
+        },
+        referenceTime: new Date("2026-03-27T20:00:00.000Z"),
+      },
+      expected: {
+        policyKey: "sla_product_qualified_4h",
+        policyVersion: "routing/v1",
+        targetMinutes: 240,
+        dueAtIso: "2026-03-28T00:00:00.000Z",
+        currentState: "on_track",
+      },
+    },
+    {
+      leadId: "acc_beaconops_lead_01",
+      context: {
+        inboundType: "Signal-driven",
+        temperature: Temperature.COLD,
+        triggerSignal: {
+          eventType: SignalType.FORM_FILL,
+          eventCategory: SignalCategory.CONVERSION,
+          receivedAt: new Date("2026-03-27T21:00:00.000Z"),
+        },
+        referenceTime: new Date("2026-03-27T21:00:00.000Z"),
+      },
+      expected: {
+        policyKey: "sla_general_form_fill_24h",
+        policyVersion: "routing/v1",
+        targetMinutes: 1440,
+        dueAtIso: "2026-03-28T21:00:00.000Z",
+        currentState: "on_track",
+      },
+    },
+    {
+      leadId: "acc_harborpoint_lead_01",
+      context: {
+        inboundType: "Outbound",
+        temperature: Temperature.COLD,
+        triggerSignal: null,
+        referenceTime: new Date("2026-03-27T22:00:00.000Z"),
+      },
+      expected: {
+        policyKey: null,
+        policyVersion: "routing/v1",
+        targetMinutes: null,
+        dueAtIso: null,
+        currentState: "on_track",
+      },
+    },
+  ] as const;
+
+  for (const scenario of cases) {
+    await db.lead.update({
+      where: { id: scenario.leadId },
+      data: {
+        firstResponseAt: null,
+        slaBreachedAt: null,
+      },
+    });
+
+    const snapshot = await assignSlaForLead(scenario.leadId, scenario.context);
+    const row = await db.lead.findUniqueOrThrow({
+      where: { id: scenario.leadId },
+      select: {
+        slaPolicyKey: true,
+        slaPolicyVersion: true,
+        slaTargetMinutes: true,
+        slaDeadlineAt: true,
+      },
+    });
+
+    assert.ok(snapshot);
+    assert.equal(snapshot?.policyKey, scenario.expected.policyKey);
+    assert.equal(snapshot?.policyVersion, scenario.expected.policyVersion);
+    assert.equal(snapshot?.slaTargetMinutes, scenario.expected.targetMinutes);
+    assert.equal(snapshot?.dueAtIso, scenario.expected.dueAtIso);
+    assert.equal(snapshot?.currentState, scenario.expected.currentState);
+    assert.equal(row.slaPolicyKey, scenario.expected.policyKey);
+    assert.equal(row.slaPolicyVersion, scenario.expected.policyVersion);
+    assert.equal(row.slaTargetMinutes, scenario.expected.targetMinutes);
+    assert.equal(row.slaDeadlineAt?.toISOString() ?? null, scenario.expected.dueAtIso);
+  }
 });
 
 test("seeded SLA scenarios expose deterministic lead and task states", async () => {
