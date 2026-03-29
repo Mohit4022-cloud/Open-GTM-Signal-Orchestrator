@@ -102,11 +102,15 @@ test("urgent inbound signal drives score, routing, task, SLA, and audit chronolo
 
   const signalIngestedIndex = newRows.findIndex((entry) => entry.actionCode === "signal_ingested");
   const scoreRecomputedIndex = newRows.findIndex((entry) => entry.actionCode === "score_recomputed");
-  const routeAssignedIndex = newRows.findIndex((entry) => entry.actionCode === "route_assigned");
-  const leadSlaAssignedIndex = newRows.findIndex(
-    (entry) => entry.actionCode === "sla_assigned" && entry.entity.type === "lead",
+  const routeAssignedIndex = newRows.findIndex(
+    (entry) => entry.actionCode === "route_assigned" && entry.entity.leadId === "acc_atlas_grid_lead_01",
   );
-  const taskCreatedIndex = newRows.findIndex((entry) => entry.actionCode === "task_created");
+  const leadSlaAssignedIndex = newRows.findIndex(
+    (entry) => entry.actionCode === "sla_assigned" && entry.entity.leadId === "acc_atlas_grid_lead_01",
+  );
+  const taskCreatedIndex = newRows.findIndex(
+    (entry) => entry.actionCode === "task_created" && entry.entity.leadId === "acc_atlas_grid_lead_01",
+  );
 
   assert.equal(result.created, true);
   assert.ok(triggeredTasks.length >= 1);

@@ -28,6 +28,7 @@ This repo is designed to be useful in two ways:
 - deterministic account and lead scoring with persisted score snapshots, score history, and reason codes
 - implemented operator views for `/dashboard`, `/accounts`, and `/accounts/[id]`
 - signal ingestion APIs at `/api/signals` and `/api/signals/upload`
+- optional provider-agnostic AI assist APIs for account summaries and lead action notes with deterministic fallback output
 - realistic demo data for accounts, contacts, leads, routing decisions, tasks, signal timelines, score history, and audit logs
 - offline-first local development with no external services required
 
@@ -54,6 +55,9 @@ flowchart LR
   - `getRecentSignals()`
   - `getAccounts(filters?)`
   - `getAccountById(id)`
+- AI assist contracts:
+  - `generateAccountSummary(accountId, options?)`
+  - `generateActionNote(leadId, options?)`
 - scoring-specific backend contracts:
   - `getAccountScoreBreakdown(accountId)`
   - `getLeadScoreBreakdown(leadId)`
@@ -97,7 +101,15 @@ flowchart LR
    npm run dev
    ```
 
-5. Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
+5. Optional: configure AI assist if you want live model output instead of deterministic fallback output.
+
+   ```bash
+   AI_PROVIDER="openai"
+   OPENAI_API_KEY="your-key"
+   OPENAI_MODEL="your-model"
+   ```
+
+6. Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
 
 ### Useful scripts
 
@@ -111,6 +123,15 @@ flowchart LR
 - `npm run db:verify-seed` to verify deterministic seed integrity
 - `npm run db:verify-contracts` to sanity-check frontend-facing contracts
 - `npm run db:verify-signal-pipeline` to validate the signal ingestion workflow
+
+## Optional AI Assist
+
+The Phase 5 AI assist layer is read-only and grounded in the existing deterministic system state.
+
+- `POST /api/ai/account-summary/:accountId`
+- `POST /api/ai/action-note/:leadId`
+- if `AI_PROVIDER=noop` or provider config is missing, both endpoints still return `200` with stable degraded contracts, deterministic fallback text, and `status="unavailable"`
+- deterministic scoring, routing, task generation, SLA tracking, and audit logic remain the source of truth
 
 ## Seeded Demo Workspace
 
@@ -153,6 +174,8 @@ Seeded scoring stories include:
 
 - `POST /api/signals`
 - `POST /api/signals/upload`
+- `POST /api/ai/account-summary/:accountId`
+- `POST /api/ai/action-note/:leadId`
 
 ### Placeholder workspace modules
 

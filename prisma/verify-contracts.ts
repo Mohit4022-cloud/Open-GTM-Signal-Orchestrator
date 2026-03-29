@@ -1,6 +1,7 @@
 import { ScoreEntityType, Segment, SignalStatus, Temperature } from "@prisma/client";
 
 import { getDashboardTaskSummary, getRecommendationsList, getTaskQueue } from "../lib/actions";
+import { generateAccountSummary, generateActionNote } from "../lib/ai";
 import { getAuditLogForEntity, getRecentAuditEvents } from "../lib/audit/queries";
 import { getAccountById, getAccounts } from "../lib/queries/accounts";
 import { getLeadById, getLeadQueue } from "../lib/queries/leads";
@@ -448,6 +449,55 @@ async function main() {
 
   const missingAccount = await getAccountById("acc_missing");
   invariant(missingAccount === null, "Expected null for a missing account lookup.");
+
+  const previousAiProvider = process.env.AI_PROVIDER;
+  const previousOpenAiKey = process.env.OPENAI_API_KEY;
+  const previousOpenAiModel = process.env.OPENAI_MODEL;
+
+  process.env.AI_PROVIDER = "noop";
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_MODEL;
+
+  try {
+    const [accountSummary, actionNote] = await Promise.all([
+      generateAccountSummary("acc_summitflow_finance"),
+      generateActionNote("acc_atlas_grid_lead_01"),
+    ]);
+
+    invariant(accountSummary !== null, "Expected AI account summary contract.");
+    invariant(accountSummary.status === "unavailable", "Expected deterministic unavailable account summary status.");
+    invariant(accountSummary.summary.length > 0, "Expected deterministic fallback summary text.");
+    invariant(accountSummary.keyDrivers.length > 0, "Expected deterministic fallback key drivers.");
+    invariant(accountSummary.generatedAt === null, "Unavailable account summary should not expose generatedAt.");
+    invariant(accountSummary.provider === null, "Unavailable account summary should not expose provider metadata.");
+    invariant(
+      typeof accountSummary.sourceSummary.score === "number" &&
+        typeof accountSummary.sourceSummary.recentSignalCount === "number" &&
+        typeof accountSummary.sourceSummary.openTaskCount === "number",
+      "Account AI source summary must expose stable numeric grounding fields.",
+    );
+
+    invariant(actionNote !== null, "Expected AI action note contract.");
+    invariant(actionNote.status === "unavailable", "Expected deterministic unavailable action note status.");
+    invariant(actionNote.note.length > 0, "Expected deterministic fallback action note text.");
+    invariant(actionNote.suggestedAngle.length > 0, "Expected deterministic fallback suggested angle.");
+    invariant(actionNote.generatedAt === null, "Unavailable action note should not expose generatedAt.");
+    invariant(actionNote.provider === null, "Unavailable action note should not expose provider metadata.");
+    invariant(
+      typeof actionNote.sourceSummary.leadScore === "number" &&
+        Array.isArray(actionNote.sourceSummary.topReasonCodes) &&
+        typeof actionNote.sourceSummary.recentSignalsUsed === "number",
+      "Action note source summary must expose stable grounded lead fields.",
+    );
+    invariant(
+      actionNote.deterministicGuardrail.length > 0,
+      "Action note contract must expose the deterministic guardrail string.",
+    );
+  } finally {
+    process.env.AI_PROVIDER = previousAiProvider;
+    process.env.OPENAI_API_KEY = previousOpenAiKey;
+    process.env.OPENAI_MODEL = previousOpenAiModel;
+  }
 
   console.log("Contract verification passed.");
 }
