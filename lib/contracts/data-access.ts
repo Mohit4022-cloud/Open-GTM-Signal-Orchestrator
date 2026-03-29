@@ -8,96 +8,15 @@ import type {
   TaskPriorityCode,
 } from "@/lib/contracts/actions";
 import type {
-  DashboardSlaSummaryContract,
-  LeadSlaSnapshotContract,
-  TaskSlaSnapshotContract,
-} from "@/lib/contracts/sla";
-
-export type MetricTone = "default" | "positive" | "warning" | "danger";
+  RecentSignalContract,
+  ScoreBucket,
+} from "@/lib/contracts/dashboard";
+import type { LeadSlaSnapshotContract, TaskSlaSnapshotContract } from "@/lib/contracts/sla";
 
 export type SelectOption = {
   label: string;
   value: string;
 };
-
-export type DashboardMetricKey =
-  | "signalsReceivedToday"
-  | "routedToday"
-  | "unmatchedSignals"
-  | "hotAccounts"
-  | "slaBreaches"
-  | "averageSpeedToLead";
-
-export type DashboardKpiContract = {
-  key: DashboardMetricKey;
-  label: string;
-  value: string;
-  rawValue: number;
-  change: string;
-  tone: MetricTone;
-};
-
-export type DashboardTrendPoint = {
-  date: string;
-  signals: number;
-  matched: number;
-};
-
-export type SlaHealthPoint = {
-  label: string;
-  value: number;
-  tone: MetricTone;
-};
-
-export type DashboardSummaryContract = {
-  asOfIso: string;
-  kpis: DashboardKpiContract[];
-  signalVolume14d: DashboardTrendPoint[];
-  slaHealth: SlaHealthPoint[];
-  slaSummary: DashboardSlaSummaryContract;
-};
-
-export type HotAccountContract = {
-  id: string;
-  name: string;
-  domain: string;
-  ownerId: string | null;
-  ownerName: string | null;
-  segment: string;
-  segmentLabel: string;
-  status: string;
-  statusLabel: string;
-  score: number;
-  temperature: string;
-  temperatureLabel: string;
-  scoringVersion: string;
-  scoreLastComputedAtIso: string | null;
-  lastSignalAtIso: string | null;
-  lastSignalAtLabel: string | null;
-};
-
-export type RecentSignalContract = {
-  id: string;
-  eventType: string;
-  eventTypeLabel: string;
-  sourceSystem: string;
-  status: string;
-  statusLabel: string;
-  occurredAtIso: string;
-  occurredAtLabel: string;
-  receivedAtIso: string;
-  receivedAtLabel: string;
-  accountId: string | null;
-  accountName: string | null;
-  contactId: string | null;
-  contactName: string | null;
-  leadId: string | null;
-  leadDisplay: string | null;
-  isUnmatched: boolean;
-  recommendedQueue?: string;
-};
-
-export type ScoreBucket = "urgent" | "hot" | "warm" | "cold";
 
 export type AccountsFiltersInput = {
   q?: string;
@@ -285,44 +204,6 @@ export type AccountDetailContract = {
   summary: string;
 };
 
-export type KpiCardValue = Pick<DashboardKpiContract, "label" | "value" | "change" | "tone">;
-
-export type HotAccountRow = {
-  id: string;
-  name: string;
-  owner: string;
-  segment: string;
-  score: number;
-  lastSignalAt: string;
-};
-
-export type UnmatchedSignalItem = {
-  id: string;
-  eventType: string;
-  sourceSystem: string;
-  receivedAt: string;
-  recommendation: string;
-};
-
-export type RoutingFeedItem = {
-  id: string;
-  accountName: string;
-  ownerName: string;
-  queue: string;
-  decisionType: string;
-  createdAt: string;
-  explanation: string;
-};
-
-export type DashboardData = {
-  kpis: KpiCardValue[];
-  signalVolume14d: DashboardTrendPoint[];
-  slaHealth: SlaHealthPoint[];
-  hotAccounts: HotAccountRow[];
-  unmatchedSignals: UnmatchedSignalItem[];
-  recentRoutingDecisions: RoutingFeedItem[];
-};
-
 export type AccountListRow = {
   id: string;
   name: string;
@@ -415,3 +296,41 @@ export type AccountDetailView = {
   auditLog: AuditLogItem[];
   summary: string;
 };
+
+export type {
+  DashboardAppliedFiltersContract,
+  DashboardBenchmarkMetricContract,
+  DashboardConversionBucketContract,
+  DashboardConversionViewContract,
+  DashboardData,
+  DashboardDemoMetaContract,
+  DashboardDistributionItemContract,
+  DashboardFiltersInput,
+  DashboardKpiContract,
+  DashboardLeadSourceVolumeContract,
+  DashboardMetricKey,
+  DashboardPipelineStageConversionBySegmentContract,
+  DashboardScoreDistributionContract,
+  DashboardSignalVolumeSeriesContract,
+  DashboardSlaComplianceTrendPointContract,
+  DashboardSlaLeadPreviewItemContract,
+  DashboardSlaViewContract,
+  DashboardSummaryContract,
+  DashboardTaskDueCollectionContract,
+  DashboardTaskDueItemContract,
+  DashboardTrendPoint,
+  HotAccountContract,
+  HotAccountRow,
+  KpiCardValue,
+  MetricTone,
+  PublicDashboardApiErrorResponseContract,
+  PublicDashboardConversionApiErrorCode,
+  PublicDashboardSlaApiErrorCode,
+  PublicDashboardSummaryApiErrorCode,
+  RecentSignalContract,
+  RoutingFeedItem,
+  ScoreBucket,
+  SlaHealthPoint,
+  UnmatchedSignalItem,
+  UnmatchedSignalsPreviewContract,
+} from "@/lib/contracts/dashboard";

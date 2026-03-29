@@ -44,6 +44,14 @@ const prisma = db;
 
 const baseDate = new Date("2026-03-26T15:00:00.000Z");
 
+function getDemoReferenceNow() {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  return now;
+}
+
+const demoReferenceNow = getDemoReferenceNow();
+
 const addHours = (date: Date, hours: number) =>
   new Date(date.getTime() + hours * 60 * 60 * 1000);
 const addMinutes = (date: Date, minutes: number) =>
@@ -991,8 +999,8 @@ function buildMatchedSignalInputs(accounts: SeededAccount[], contacts: SeededCon
     return Array.from({ length: signalCount }, (_, signalIndex) => {
       const eventType = seededSignalTypes[(accountIndex + signalIndex) % seededSignalTypes.length]!;
       const contact = accountContacts[signalIndex % accountContacts.length]!;
-      const occurredAt = addMinutes(
-        subDays(baseDate, dayOffsets[signalIndex]!),
+      const occurredAt = subMinutes(
+        subDays(demoReferenceNow, dayOffsets[signalIndex]!),
         accountIndex * 13 + signalIndex * 17,
       );
       const receivedAt = addMinutes(occurredAt, 5 + ((accountIndex + signalIndex) % 3) * 6);
@@ -1026,78 +1034,78 @@ function buildUnmatchedSignalInputs(
       source_system: "website",
       event_type: "pricing_page_visit",
       contact_email: `ghost-1@${accounts[0]!.domain}`,
-      occurred_at: subMinutes(baseDate, 110).toISOString(),
-      received_at: subMinutes(baseDate, 104).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 110).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 104).toISOString(),
       payload: { page: "/pricing", session_id: "ghost_session_1", visit_count: 3 },
     },
     {
       source_system: "marketing_automation",
       event_type: "form_fill",
       contact_email: `ghost-2@${accounts[1]!.domain}`,
-      occurred_at: subMinutes(baseDate, 104).toISOString(),
-      received_at: subMinutes(baseDate, 100).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 104).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 100).toISOString(),
       payload: { form_id: "request_demo", submission_id: "ghost_form_2" },
     },
     {
       source_system: "sales_engagement",
       event_type: "email_reply",
       contact_email: `ghost-3@${accounts[2]!.domain}`,
-      occurred_at: subMinutes(baseDate, 98).toISOString(),
-      received_at: subMinutes(baseDate, 94).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 98).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 94).toISOString(),
       payload: { thread_id: "ghost_thread_3", message_id: "ghost_message_3", subject: "Unknown contact" },
     },
     {
       source_system: "product",
       event_type: "product_usage_milestone",
       contact_email: `ghost-4@${accounts[3]!.domain}`,
-      occurred_at: subMinutes(baseDate, 92).toISOString(),
-      received_at: subMinutes(baseDate, 86).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 92).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 86).toISOString(),
       payload: { workspace_id: "ghost_workspace_4", milestone: "activated" },
     },
     {
       source_system: "website",
       event_type: "website_visit",
       account_domain: "unknown-stage-two-1.example.com",
-      occurred_at: subMinutes(baseDate, 86).toISOString(),
-      received_at: subMinutes(baseDate, 82).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 86).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 82).toISOString(),
       payload: { page: "/docs", session_id: "unknown_domain_1" },
     },
     {
       source_system: "third_party_intent",
       event_type: "third_party_intent_event",
       account_domain: "unknown-stage-two-2.example.com",
-      occurred_at: subMinutes(baseDate, 80).toISOString(),
-      received_at: subMinutes(baseDate, 75).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 80).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 75).toISOString(),
       payload: { provider: "bombora", topic: "revenue_intelligence", intent_id: "ghost_intent_2" },
     },
     {
       source_system: "sales_note",
       event_type: "manual_sales_note",
       account_domain: "unknown-stage-two-3.example.com",
-      occurred_at: subMinutes(baseDate, 74).toISOString(),
-      received_at: subMinutes(baseDate, 70).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 74).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 70).toISOString(),
       payload: { note_id: "ghost_note_3", author_id: "usr_priya_singh", note_subject: "Unknown account" },
     },
     {
       source_system: "crm",
       event_type: "account_status_update",
       account_domain: "unknown-stage-two-4.example.com",
-      occurred_at: subMinutes(baseDate, 68).toISOString(),
-      received_at: subMinutes(baseDate, 62).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 68).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 62).toISOString(),
       payload: { status_change_id: "ghost_status_4", previous_status: "engaged", new_status: "unknown" },
     },
     {
       source_system: "website",
       event_type: "website_visit",
-      occurred_at: subMinutes(baseDate, 62).toISOString(),
-      received_at: subMinutes(baseDate, 58).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 62).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 58).toISOString(),
       payload: { page: "/security", session_id: "anonymous_1" },
     },
     {
       source_system: "calendar",
       event_type: "meeting_no_show",
-      occurred_at: subMinutes(baseDate, 56).toISOString(),
-      received_at: subMinutes(baseDate, 52).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 56).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 52).toISOString(),
       payload: { meeting_id: "anonymous_meeting_2", calendar_event_id: "anonymous_calendar_2", meeting_type: "demo" },
     },
     {
@@ -1105,8 +1113,8 @@ function buildUnmatchedSignalInputs(
       event_type: "meeting_booked",
       account_domain: accounts[4]!.domain,
       contact_email: conflictingContactTwo.email,
-      occurred_at: subMinutes(baseDate, 50).toISOString(),
-      received_at: subMinutes(baseDate, 46).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 50).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 46).toISOString(),
       payload: { meeting_id: "conflict_meeting_1", calendar_event_id: "conflict_calendar_1", meeting_type: "exec_review" },
     },
     {
@@ -1114,8 +1122,8 @@ function buildUnmatchedSignalInputs(
       event_type: "webinar_registration",
       account_domain: accounts[7]!.domain,
       contact_email: conflictingContactOne.email,
-      occurred_at: subMinutes(baseDate, 44).toISOString(),
-      received_at: subMinutes(baseDate, 40).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 44).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 40).toISOString(),
       payload: { webinar_name: "Signal orchestration benchmark", webinar_id: "conflict_webinar_2", registration_id: "conflict_registration_2" },
     },
   ];
@@ -1163,8 +1171,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subHours(baseDate, 70).toISOString(),
-      received_at: subHours(baseDate, 69).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 70).toISOString(),
+      received_at: subHours(demoReferenceNow, 69).toISOString(),
       payload: { page: "/pricing", session_id: "summitflow_pricing_story_1", visit_count: 2 },
     },
     {
@@ -1172,8 +1180,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subHours(baseDate, 29).toISOString(),
-      received_at: subHours(baseDate, 28).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 29).toISOString(),
+      received_at: subHours(demoReferenceNow, 28).toISOString(),
       payload: { page: "/pricing", session_id: "summitflow_pricing_story_2", visit_count: 3 },
     },
     {
@@ -1181,8 +1189,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subHours(baseDate, 5).toISOString(),
-      received_at: subHours(baseDate, 4).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 5).toISOString(),
+      received_at: subHours(demoReferenceNow, 4).toISOString(),
       payload: { page: "/pricing", session_id: "summitflow_pricing_story_3", visit_count: 4 },
     },
     {
@@ -1190,8 +1198,8 @@ function buildScoringStorySignalInputs(
       event_type: "high_intent_page_cluster_visit",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subHours(baseDate, 3).toISOString(),
-      received_at: subHours(baseDate, 2).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 3).toISOString(),
+      received_at: subHours(demoReferenceNow, 2).toISOString(),
       payload: { page_cluster: "pricing,security,integrations", session_id: "summitflow_cluster_story_1" },
     },
     {
@@ -1199,8 +1207,8 @@ function buildScoringStorySignalInputs(
       event_type: "meeting_booked",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subHours(baseDate, 2).toISOString(),
-      received_at: subHours(baseDate, 1).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 2).toISOString(),
+      received_at: subHours(demoReferenceNow, 1).toISOString(),
       payload: {
         meeting_id: "summitflow_story_meeting_1",
         calendar_event_id: "summitflow_story_calendar_1",
@@ -1212,8 +1220,8 @@ function buildScoringStorySignalInputs(
       event_type: "form_fill",
       account_domain: summitFlow.domain,
       contact_email: summitFlowPrimary.email,
-      occurred_at: subMinutes(baseDate, 70).toISOString(),
-      received_at: subMinutes(baseDate, 64).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 70).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 64).toISOString(),
       payload: {
         form_id: "request_demo",
         submission_id: "summitflow_story_form_1",
@@ -1225,8 +1233,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subHours(baseDate, 60).toISOString(),
-      received_at: subHours(baseDate, 59).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 60).toISOString(),
+      received_at: subHours(demoReferenceNow, 59).toISOString(),
       payload: { page: "/pricing", session_id: "harborpoint_pricing_story_1", visit_count: 2 },
     },
     {
@@ -1234,8 +1242,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subHours(baseDate, 26).toISOString(),
-      received_at: subHours(baseDate, 25).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 26).toISOString(),
+      received_at: subHours(demoReferenceNow, 25).toISOString(),
       payload: { page: "/pricing", session_id: "harborpoint_pricing_story_2", visit_count: 3 },
     },
     {
@@ -1243,8 +1251,8 @@ function buildScoringStorySignalInputs(
       event_type: "pricing_page_visit",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subHours(baseDate, 4).toISOString(),
-      received_at: subHours(baseDate, 3).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 4).toISOString(),
+      received_at: subHours(demoReferenceNow, 3).toISOString(),
       payload: { page: "/pricing", session_id: "harborpoint_pricing_story_3", visit_count: 4 },
     },
     {
@@ -1252,8 +1260,8 @@ function buildScoringStorySignalInputs(
       event_type: "form_fill",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subHours(baseDate, 3).toISOString(),
-      received_at: subHours(baseDate, 2).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 3).toISOString(),
+      received_at: subHours(demoReferenceNow, 2).toISOString(),
       payload: { form_id: "request_demo", submission_id: "harborpoint_story_form_1", campaign: "ops_evaluation" },
     },
     {
@@ -1261,8 +1269,8 @@ function buildScoringStorySignalInputs(
       event_type: "meeting_booked",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subHours(baseDate, 2).toISOString(),
-      received_at: subHours(baseDate, 1).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 2).toISOString(),
+      received_at: subHours(demoReferenceNow, 1).toISOString(),
       payload: {
         meeting_id: "harborpoint_story_meeting_1",
         calendar_event_id: "harborpoint_story_calendar_1",
@@ -1274,8 +1282,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_usage_milestone",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subMinutes(baseDate, 80).toISOString(),
-      received_at: subMinutes(baseDate, 74).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 80).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 74).toISOString(),
       payload: {
         workspace_id: "harborpoint_story_workspace",
         milestone: "connected_crm",
@@ -1287,8 +1295,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_signup",
       account_domain: harborPoint.domain,
       contact_email: harborPointPrimary.email,
-      occurred_at: subMinutes(baseDate, 70).toISOString(),
-      received_at: subMinutes(baseDate, 64).toISOString(),
+      occurred_at: subMinutes(demoReferenceNow, 70).toISOString(),
+      received_at: subMinutes(demoReferenceNow, 64).toISOString(),
       payload: {
         workspace_id: "harborpoint_story_workspace",
         signup_id: "harborpoint_story_signup_1",
@@ -1300,8 +1308,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_signup",
       account_domain: ironPeak.domain,
       contact_email: ironPeakPrimary.email,
-      occurred_at: subHours(baseDate, 72).toISOString(),
-      received_at: subHours(baseDate, 71).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 72).toISOString(),
+      received_at: subHours(demoReferenceNow, 71).toISOString(),
       payload: { workspace_id: "ironpeak_story_workspace", signup_id: "ironpeak_story_signup_1", plan: "pilot" },
     },
     {
@@ -1309,8 +1317,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_usage_milestone",
       account_domain: ironPeak.domain,
       contact_email: ironPeakPrimary.email,
-      occurred_at: subHours(baseDate, 8).toISOString(),
-      received_at: subHours(baseDate, 7).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 8).toISOString(),
+      received_at: subHours(demoReferenceNow, 7).toISOString(),
       payload: {
         workspace_id: "ironpeak_story_workspace",
         milestone: "invited_teammates",
@@ -1322,8 +1330,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_usage_milestone",
       account_domain: ironPeak.domain,
       contact_email: ironPeakPrimary.email,
-      occurred_at: subHours(baseDate, 6).toISOString(),
-      received_at: subHours(baseDate, 5).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 6).toISOString(),
+      received_at: subHours(demoReferenceNow, 5).toISOString(),
       payload: {
         workspace_id: "ironpeak_story_workspace",
         milestone: "connected_crm",
@@ -1335,8 +1343,8 @@ function buildScoringStorySignalInputs(
       event_type: "email_reply",
       account_domain: ironPeak.domain,
       contact_email: ironPeakPrimary.email,
-      occurred_at: subHours(baseDate, 4).toISOString(),
-      received_at: subHours(baseDate, 3).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 4).toISOString(),
+      received_at: subHours(demoReferenceNow, 3).toISOString(),
       payload: {
         thread_id: "ironpeak_story_thread_1",
         message_id: "ironpeak_story_message_1",
@@ -1348,8 +1356,8 @@ function buildScoringStorySignalInputs(
       event_type: "meeting_booked",
       account_domain: ironPeak.domain,
       contact_email: ironPeakPrimary.email,
-      occurred_at: subHours(baseDate, 2).toISOString(),
-      received_at: subHours(baseDate, 1).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 2).toISOString(),
+      received_at: subHours(demoReferenceNow, 1).toISOString(),
       payload: {
         meeting_id: "ironpeak_story_meeting_1",
         calendar_event_id: "ironpeak_story_calendar_1",
@@ -1361,8 +1369,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_signup",
       account_domain: signalNest.domain,
       contact_email: signalNestPrimary.email,
-      occurred_at: subHours(baseDate, 48).toISOString(),
-      received_at: subHours(baseDate, 47).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 48).toISOString(),
+      received_at: subHours(demoReferenceNow, 47).toISOString(),
       payload: {
         workspace_id: "signalnest_story_workspace",
         signup_id: "signalnest_story_signup_1",
@@ -1374,8 +1382,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_usage_milestone",
       account_domain: signalNest.domain,
       contact_email: signalNestPrimary.email,
-      occurred_at: subHours(baseDate, 20).toISOString(),
-      received_at: subHours(baseDate, 19).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 20).toISOString(),
+      received_at: subHours(demoReferenceNow, 19).toISOString(),
       payload: {
         workspace_id: "signalnest_story_workspace",
         milestone: "invited_teammates",
@@ -1387,8 +1395,8 @@ function buildScoringStorySignalInputs(
       event_type: "product_usage_milestone",
       account_domain: signalNest.domain,
       contact_email: signalNestPrimary.email,
-      occurred_at: subHours(baseDate, 6).toISOString(),
-      received_at: subHours(baseDate, 5).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 6).toISOString(),
+      received_at: subHours(demoReferenceNow, 5).toISOString(),
       payload: {
         workspace_id: "signalnest_story_workspace",
         milestone: "connected_crm",
@@ -1400,8 +1408,8 @@ function buildScoringStorySignalInputs(
       event_type: "email_reply",
       account_domain: signalNest.domain,
       contact_email: signalNestPrimary.email,
-      occurred_at: subHours(baseDate, 5).toISOString(),
-      received_at: subHours(baseDate, 4).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 5).toISOString(),
+      received_at: subHours(demoReferenceNow, 4).toISOString(),
       payload: {
         thread_id: "signalnest_story_thread_1",
         message_id: "signalnest_story_message_1",
@@ -1413,8 +1421,8 @@ function buildScoringStorySignalInputs(
       event_type: "meeting_booked",
       account_domain: signalNest.domain,
       contact_email: signalNestPrimary.email,
-      occurred_at: subHours(baseDate, 4).toISOString(),
-      received_at: subHours(baseDate, 3).toISOString(),
+      occurred_at: subHours(demoReferenceNow, 4).toISOString(),
+      received_at: subHours(demoReferenceNow, 3).toISOString(),
       payload: {
         meeting_id: "signalnest_story_meeting_1",
         calendar_event_id: "signalnest_story_calendar_1",
@@ -2133,28 +2141,28 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     actorType: "user",
     actorName: "Priya Singh",
     note: "Prioritized after product-qualified expansion interest.",
-    effectiveAtIso: addMinutes(baseDate, 20).toISOString(),
+    effectiveAtIso: subMinutes(demoReferenceNow, 50).toISOString(),
   });
   await setLeadManualPriorityBoost("acc_summitflow_finance_lead_01", 5, {
     actorType: "user",
     actorName: "Amelia Ross",
     note: "Escalated because pricing activity and live meeting intent converged.",
-    effectiveAtIso: addMinutes(baseDate, 21).toISOString(),
+    effectiveAtIso: subMinutes(demoReferenceNow, 45).toISOString(),
   });
   await setLeadManualPriorityBoost("acc_harborpoint_lead_01", 5, {
     actorType: "user",
     actorName: "Elena Morales",
     note: "Moved into the executive queue after the direct meeting request.",
-    effectiveAtIso: addMinutes(baseDate, 22).toISOString(),
+    effectiveAtIso: subMinutes(demoReferenceNow, 40).toISOString(),
   });
   await setLeadManualPriorityBoost("acc_ironpeak_lead_01", 5, {
     actorType: "user",
     actorName: "Elena Morales",
     note: "Boosted after product activation and stakeholder follow-up aligned.",
-    effectiveAtIso: addMinutes(baseDate, 23).toISOString(),
+    effectiveAtIso: subMinutes(demoReferenceNow, 35).toISOString(),
   });
 
-  const scoreAsOf = addMinutes(baseDate, 45);
+  const scoreAsOf = subHours(demoReferenceNow, 18);
   for (const account of accounts) {
     await recomputeAccountScore(account.id, {
       type: "MANUAL_RECOMPUTE",
@@ -2189,9 +2197,11 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     ),
   );
 
+  const initialRoutingReference = subHours(demoReferenceNow, 52);
+
   for (const [index, lead] of leads.entries()) {
     const decision = await routeLead(lead.id, {
-      effectiveAt: addMinutes(scoreAsOf, index),
+      effectiveAt: addMinutes(initialRoutingReference, index * 90),
     });
 
     if (!decision) {
@@ -2235,8 +2245,8 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     event_type: "form_fill",
     account_domain: atlasGridAccount.domain,
     contact_email: atlasGridPrimaryContact.email,
-    occurred_at: subMinutes(baseDate, 36).toISOString(),
-    received_at: subMinutes(baseDate, 30).toISOString(),
+    occurred_at: subMinutes(demoReferenceNow, 36).toISOString(),
+    received_at: subMinutes(demoReferenceNow, 30).toISOString(),
     payload: {
       form_id: "request_demo",
       submission_id: "atlas_grid_action_demo_1",
@@ -2287,12 +2297,12 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
       accountId: "acc_beaconops",
       eventType: SignalType.FORM_FILL,
       occurredAt: {
-        gte: subDays(baseDate, 30),
+        gte: subDays(demoReferenceNow, 30),
       },
     },
     data: {
-      occurredAt: subDays(baseDate, 45),
-      receivedAt: subDays(baseDate, 45),
+      occurredAt: subDays(demoReferenceNow, 45),
+      receivedAt: subDays(demoReferenceNow, 45),
     },
   });
   const beaconOpsSignal = await ingestSeedSignal({
@@ -2300,8 +2310,8 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     event_type: "pricing_page_visit",
     account_domain: beaconOpsAccount.domain,
     contact_email: beaconOpsPrimaryContact.email,
-    occurred_at: subHours(baseDate, 11).toISOString(),
-    received_at: subHours(baseDate, 10).toISOString(),
+    occurred_at: subHours(demoReferenceNow, 11).toISOString(),
+    received_at: subHours(demoReferenceNow, 10).toISOString(),
     payload: {
       page: "/pricing",
       session_id: "beaconops_action_pricing_1",
@@ -2324,8 +2334,8 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     event_type: "product_usage_milestone",
     account_domain: signalNestAccount.domain,
     contact_email: signalNestPrimaryContact.email,
-    occurred_at: subHours(baseDate, 7).toISOString(),
-    received_at: subHours(baseDate, 6).toISOString(),
+    occurred_at: subHours(demoReferenceNow, 7).toISOString(),
+    received_at: subHours(demoReferenceNow, 6).toISOString(),
     payload: {
       workspace_id: "signalnest_action_workspace",
       milestone: "connected_crm",
@@ -2351,8 +2361,8 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     event_type: "form_fill",
     account_domain: summitFlowAccount.domain,
     contact_email: summitFlowPrimaryContact.email,
-    occurred_at: subMinutes(baseDate, 24).toISOString(),
-    received_at: subMinutes(baseDate, 18).toISOString(),
+    occurred_at: subMinutes(demoReferenceNow, 24).toISOString(),
+    received_at: subMinutes(demoReferenceNow, 18).toISOString(),
     payload: {
       form_id: "request_demo",
       submission_id: "summitflow_action_demo_1",
@@ -2369,12 +2379,12 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     ownerId: "usr_dante_kim",
     taskType: "REVIEW",
     priorityCode: "P3",
-    dueAtIso: subHours(baseDate, 16).toISOString(),
+    dueAtIso: subHours(demoReferenceNow, 16).toISOString(),
     status: TaskStatus.COMPLETED,
     title: "Capture Northstar onboarding notes",
     description: "Close out the onboarding review and store the account context for the next AE touch.",
   }, {
-    createdAt: subHours(baseDate, 20),
+    createdAt: subHours(demoReferenceNow, 20),
   });
   await createManualTask({
     leadId: "acc_cedarbridge_health_lead_01",
@@ -2382,39 +2392,38 @@ export async function seedDemoData(options: { logSummary?: boolean; reset?: bool
     ownerId: "usr_amelia_ross",
     taskType: "EMAIL",
     priorityCode: "P4",
-    dueAtIso: subHours(baseDate, 12).toISOString(),
+    dueAtIso: subHours(demoReferenceNow, 12).toISOString(),
     status: TaskStatus.COMPLETED,
     title: "Send recap to CedarBridge Health",
     description: "Send the operator recap and mark the follow-up thread as complete.",
   }, {
-    createdAt: subHours(baseDate, 16),
+    createdAt: subHours(demoReferenceNow, 16),
   });
   await createManualTask({
     accountId: "acc_frontier_retail",
     ownerId: "usr_hana_cho",
     taskType: "RESEARCH",
     priorityCode: "P2",
-    dueAtIso: addHours(baseDate, 84).toISOString(),
+    dueAtIso: addHours(demoReferenceNow, 84).toISOString(),
     status: TaskStatus.IN_PROGRESS,
     title: "Research APAC expansion signals for Frontier Retail",
     description: "Validate stakeholder changes and confirm whether the current evaluation is regional or global.",
   }, {
-    createdAt: addHours(baseDate, 60),
+    createdAt: addHours(demoReferenceNow, 60),
   });
   await createManualTask({
     accountId: "acc_meridian_freight",
     ownerId: "usr_amelia_ross",
     taskType: "REVIEW",
     priorityCode: "P4",
-    dueAtIso: addHours(baseDate, 96).toISOString(),
+    dueAtIso: addHours(demoReferenceNow, 96).toISOString(),
     title: "Review coverage plan for Meridian Freight Cloud",
     description: "Confirm owner coverage, open dependencies, and the next-best action for the account plan.",
   }, {
-    createdAt: addHours(baseDate, 64),
+    createdAt: addHours(demoReferenceNow, 64),
   });
 
-  const slaSeedNow = new Date();
-  slaSeedNow.setSeconds(0, 0);
+  const slaSeedNow = new Date(demoReferenceNow);
 
   await resolveBackgroundLeadSlaBacklog(new Set(["acc_atlas_grid_lead_01"]));
   await resolveBackgroundTrackedTaskBacklog(new Set(["acc_atlas_grid_lead_01"]));
