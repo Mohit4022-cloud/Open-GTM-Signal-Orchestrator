@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, AlertTriangle, ArrowRight, Flame, Router, ShieldCheck } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, ArrowRight, Flame, ListChecks, Router, ShieldCheck, UserX, Zap } from "lucide-react";
 
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -9,10 +9,46 @@ import { MetricCard } from "@/components/shared/MetricCard";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { SignalSourceBadge } from "@/components/signals/SignalSourceBadge";
 import { getSegmentTone } from "@/lib/badgeHelpers";
+import { getDashboardTaskSummary } from "@/lib/actions";
 import { getDashboardData } from "@/lib/queries/dashboard";
 
+function StatCell({
+  label,
+  value,
+  icon: Icon,
+  danger,
+  warning,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  danger?: boolean;
+  warning?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-panel-muted/80 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-1 flex items-center gap-2">
+        <p
+          className={`font-mono text-2xl font-semibold ${danger && value > 0 ? "text-danger" : warning && value > 0 ? "text-warning" : "text-foreground"}`}
+        >
+          {value}
+        </p>
+        <Icon
+          className={`size-4 ${danger && value > 0 ? "text-danger" : warning && value > 0 ? "text-warning" : "text-muted-foreground"}`}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const [data, taskSummary] = await Promise.all([
+    getDashboardData(),
+    getDashboardTaskSummary(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -67,6 +103,79 @@ export default async function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Task Pulse */}
+      <Card className="p-6">
+        <SectionHeader
+          label="Task pulse"
+          title="Open task queue health"
+          badge={
+            <Badge tone="accent">
+              <ListChecks className="mr-1 size-3.5" />
+              Live queue
+            </Badge>
+          }
+        />
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCell
+            label="Open"
+            value={taskSummary.openCount}
+            icon={ListChecks}
+          />
+          <StatCell
+            label="Overdue"
+            value={taskSummary.overdueCount}
+            icon={AlertCircle}
+            danger
+          />
+          <StatCell
+            label="Urgent"
+            value={taskSummary.urgentCount}
+            icon={Zap}
+            warning
+          />
+          <StatCell
+            label="Unassigned"
+            value={taskSummary.unassignedCount}
+            icon={UserX}
+            warning
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
+          <span>
+            SLA tracked:{" "}
+            <strong className="font-mono text-foreground">
+              {taskSummary.trackedSlaCount}
+            </strong>
+          </span>
+          <span>
+            Breached:{" "}
+            <strong
+              className={`font-mono ${taskSummary.breachedCount > 0 ? "text-danger" : "text-foreground"}`}
+            >
+              {taskSummary.breachedCount}
+            </strong>
+          </span>
+          <span>
+            Due soon:{" "}
+            <strong
+              className={`font-mono ${taskSummary.dueSoonCount > 0 ? "text-warning" : "text-foreground"}`}
+            >
+              {taskSummary.dueSoonCount}
+            </strong>
+          </span>
+        </div>
+        <div className="mt-4 border-t border-border pt-4">
+          <Link
+            href="/tasks"
+            aria-label="View full task queue"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80"
+          >
+            View task queue
+            <ArrowRight className="size-3.5" aria-hidden="true" />
+          </Link>
+        </div>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
         <Card className="p-6">
