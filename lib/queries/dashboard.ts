@@ -15,6 +15,7 @@ import {
 import { getRecommendedQueue } from "@/lib/data/signals/presentation";
 import { db } from "@/lib/db";
 import { formatCompactNumber, formatEnumLabel, formatRelativeTime } from "@/lib/formatters/display";
+import { withMissingTableFallback } from "@/lib/prisma-errors";
 import { summarizeRoutingExplanation } from "@/lib/routing/explanation";
 import { getRecentRoutingDecisions } from "@/lib/routing/service";
 import type { ModulePlaceholderConfig } from "@/lib/types";
@@ -72,11 +73,15 @@ export async function getDashboardSummary(): Promise<DashboardSummaryContract> {
         slaDeadlineAt: true,
       },
     }),
-    db.routingDecision.findMany({
-      select: {
-        createdAt: true,
-      },
-    }),
+    withMissingTableFallback(
+      () =>
+        db.routingDecision.findMany({
+          select: {
+            createdAt: true,
+          },
+        }),
+      [],
+    ),
     db.task.findMany({
       select: {
         dueAt: true,
@@ -270,7 +275,7 @@ export async function getRecentSignals(): Promise<RecentSignalContract[]> {
 }
 
 async function getRecentRoutingFeed(): Promise<RoutingFeedItem[]> {
-  const routingDecisions = await getRecentRoutingDecisions(6);
+  const routingDecisions = await withMissingTableFallback(() => getRecentRoutingDecisions(6), []);
   const accountIds = routingDecisions
     .map((decision) => decision.accountId)
     .filter((accountId): accountId is string => Boolean(accountId));
@@ -345,7 +350,7 @@ export async function getWorkspaceTeasers(): Promise<Record<string, ModulePlaceh
     db.lead.count(),
     db.task.count({ where: { status: { not: TaskStatus.COMPLETED } } }),
     db.signalEvent.count(),
-    db.routingDecision.count(),
+    withMissingTableFallback(() => db.routingDecision.count(), 0),
     db.ruleConfig.count({ where: { isActive: true } }),
   ]);
 
